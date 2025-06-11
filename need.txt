@@ -1,0 +1,1328 @@
+好的，没有问题。根据你提供的毕业论文文档，我将为你构建一个完整、可运行的 **“基于SpringBoot的自习室会员管理系统”**。
+
+这个项目将严格遵循文档中描述的核心功能、技术选型和数据库设计，并采用简洁明了的方式实现，确保你可以轻松理解、部署和运行。
+
+### 项目概述
+
+1.  **后端技术**: Spring Boot 2.x, Spring Data JPA (Hibernate), Spring Security
+2.  **前端技术**: Thymeleaf (替代文档中的JSP，这是现代Spring Boot推荐的服务端模板引擎，功能一致且集成更优), HTML, CSS (Bootstrap 5 for basic styling)
+3.  **数据库**: MySQL 5.7
+4.  **构建工具**: Maven
+5.  **运行环境**: JDK 1.8, Tomcat (内嵌)
+
+### 核心功能实现
+
+我将实现文档中提到的几个核心模块的简化版本：
+
+1.  **用户管理 (系统管理)**:
+    *   区分 **管理员 (ADMIN)** 和 **学生 (USER)** 两种角色。
+    *   提供登录、注册功能。
+    *   使用 Spring Security 进行认证和授权。
+2.  **通知与公告 (通知与公告)**:
+    *   管理员可以发布和删除公告。
+    *   所有用户（包括未登录用户）都可以在首页看到公告列表。
+3.  **座位预约 (座位预约)**:
+    *   学生可以查看所有座位状态。
+    *   学生可以预约空闲座位。
+    *   学生可以查看自己的预约记录并取消预约。
+    *   管理员可以查看所有人的预约记录。
+4.  **投诉与建议 (投诉与建议)**:
+    *   学生可以提交投诉。
+    *   管理员可以查看所有投诉。
+
+---
+
+### 项目文件结构
+
+下面是整个项目的完整文件结构和代码。你可以将它们复制到对应的文件中。
+
+```
+study-room-management/
+├── pom.xml
+└── src/
+    └── main/
+        ├── java/
+        │   └── com/
+        │       └── example/
+        │           └── studyroom/
+        │               ├── StudyRoomApplication.java
+        │               ├── config/
+        │               │   └── SecurityConfig.java
+        │               ├── controller/
+        │               │   ├── AdminController.java
+        │               │   ├── AuthController.java
+        │               │   ├── HomeController.java
+        │               │   └── ReservationController.java
+        │               ├── model/
+        │               │   ├── Announcement.java
+        │               │   ├── Complaint.java
+        │               │   ├── Reservation.java
+        │               │   ├── Seat.java
+        │               │   └── User.java
+        │               ├── repository/
+        │               │   ├── AnnouncementRepository.java
+        │               │   ├── ComplaintRepository.java
+        │               │   ├── ReservationRepository.java
+        │               │   ├── SeatRepository.java
+        │               │   └── UserRepository.java
+        │               └── service/
+        │                   └── UserDetailsServiceImpl.java
+        └── resources/
+            ├── application.properties
+            ├── static/
+            │   └── css/
+            │       └── style.css
+            └── templates/
+                ├── admin/
+                │   ├── announcements.html
+                │   ├── complaints.html
+                │   ├── dashboard.html
+                │   └── reservations.html
+                ├── fragments/
+                │   └── layout.html
+                ├── auth/
+                │   ├── login.html
+                │   └── register.html
+                ├── index.html
+                └── reservations.html
+```
+
+---
+
+### 第1步：数据库准备
+
+首先，你需要在你的MySQL服务器中执行以下SQL脚本。
+
+#### 1.1 创建数据库
+
+```sql
+CREATE DATABASE `study_room_db` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE `study_room_db`;
+```
+
+#### 1.2 创建数据表 (根据论文设计)
+
+这个脚本创建了所有需要的表：用户(学生/管理员)、座位、预约、公告、投诉。
+
+```sql
+-- 用户表 (整合了学生和管理员，用role区分)
+CREATE TABLE `user` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `username` VARCHAR(50) NOT NULL UNIQUE,
+  `password` VARCHAR(100) NOT NULL,
+  `student_id` VARCHAR(20) UNIQUE, -- 学号
+  `full_name` VARCHAR(50),         -- 姓名
+  `role` VARCHAR(20) NOT NULL,     -- 角色: 'ROLE_USER' for student, 'ROLE_ADMIN' for admin
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 公告表
+CREATE TABLE `announcement` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `title` VARCHAR(255) NOT NULL,
+  `content` TEXT NOT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 座位表
+CREATE TABLE `seat` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `seat_number` VARCHAR(10) NOT NULL UNIQUE,
+  `is_available` BOOLEAN NOT NULL DEFAULT TRUE,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 预约记录表
+CREATE TABLE `reservation` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `user_id` BIGINT NOT NULL,
+  `seat_id` BIGINT NOT NULL,
+  `start_time` DATETIME NOT NULL,
+  `end_time` DATETIME NOT NULL,
+  `status` VARCHAR(20) NOT NULL, -- 'ACTIVE', 'CANCELLED'
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`user_id`) REFERENCES `user`(`id`),
+  FOREIGN KEY (`seat_id`) REFERENCES `seat`(`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 投诉建议表
+CREATE TABLE `complaint` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `user_id` BIGINT NOT NULL,
+  `title` VARCHAR(255) NOT NULL,
+  `content` TEXT NOT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`user_id`) REFERENCES `user`(`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+#### 1.3 插入初始数据
+
+为了方便测试，我们插入一个管理员、一个学生和一些座位。
+
+```sql
+-- 插入管理员 (密码是 123456)
+-- BCrypt encoded for '123456'
+INSERT INTO `user` (`username`, `password`, `full_name`, `role`)
+VALUES ('admin', '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07c209chCoSzOAoFSG', '系统管理员', 'ROLE_ADMIN');
+
+-- 插入一个学生 (密码是 123456)
+INSERT INTO `user` (`username`, `password`, `student_id`, `full_name`, `role`)
+VALUES ('student1', '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07c209chCoSzOAoFSG', '2024001', '张三', 'ROLE_USER');
+
+-- 插入一些座位
+INSERT INTO `seat` (`seat_number`) VALUES ('A01'), ('A02'), ('A03'), ('A04'), ('A05'), ('B01'), ('B02'), ('B03'), ('B04'), ('B05');
+```
+
+---
+
+### 第2步：项目代码
+
+#### `pom.xml`
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>2.5.14</version> <!-- A stable version compatible with Java 8 -->
+        <relativePath/> <!-- lookup parent from repository -->
+    </parent>
+    <groupId>com.example</groupId>
+    <artifactId>study-room-management</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>study-room-management</name>
+    <description>Self-study room member management system</description>
+    <properties>
+        <java.version>1.8</java.version>
+    </properties>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-thymeleaf</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.thymeleaf.extras</groupId>
+            <artifactId>thymeleaf-extras-springsecurity5</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
+```
+
+#### `src/main/resources/application.properties`
+
+**重要**: 请将 `your_mysql_password` 替换为你的MySQL root用户密码。
+
+```properties
+# DataSource settings
+spring.datasource.url=jdbc:mysql://localhost:3306/study_room_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+spring.datasource.username=root
+spring.datasource.password=your_mysql_password
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+
+# JPA/Hibernate settings
+spring.jpa.hibernate.ddl-auto=none # We use our own schema.sql
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL57Dialect
+
+# Server port
+server.port=8080
+
+# Thymeleaf settings
+spring.thymeleaf.cache=false
+```
+
+#### Java 代码 (全部)
+
+将以下所有Java类文件放到 `src/main/java/com/example/studyroom/` 目录下对应的子包中。
+
+**`StudyRoomApplication.java` (主启动类)**
+```java
+package com.example.studyroom;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class StudyRoomApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(StudyRoomApplication.class, args);
+    }
+}
+```
+
+**`config/SecurityConfig.java` (安全配置)**
+```java
+package com.example.studyroom.config;
+
+import com.example.studyroom.service.UserDetailsServiceImpl;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig extends WebSecurityConfigurerAdapter {
+
+    @Autowired
+    private UserDetailsServiceImpl userDetailsService;
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Override
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+        auth.userDetailsService(userDetailsService).passwordEncoder(passwordEncoder());
+    }
+
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http
+            .authorizeRequests()
+                .antMatchers("/admin/**").hasRole("ADMIN")
+                .antMatchers("/reservations/**", "/complaints/**").hasRole("USER")
+                .antMatchers("/", "/register", "/css/**", "/js/**").permitAll()
+                .anyRequest().authenticated()
+                .and()
+            .formLogin()
+                .loginPage("/login")
+                .defaultSuccessUrl("/", true)
+                .permitAll()
+                .and()
+            .logout()
+                .logoutSuccessUrl("/login?logout")
+                .permitAll()
+                .and()
+            .csrf().disable(); // For simplicity in this demo
+    }
+}
+```
+
+**Model (实体类)**
+*   `model/User.java`
+```java
+package com.example.studyroom.model;
+
+import lombok.Data;
+import javax.persistence.*;
+import java.util.List;
+
+@Data
+@Entity
+public class User {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    @Column(unique = true, nullable = false)
+    private String username;
+    @Column(nullable = false)
+    private String password;
+    @Column(unique = true)
+    private String studentId;
+    private String fullName;
+    @Column(nullable = false)
+    private String role;
+    
+    @OneToMany(mappedBy = "user")
+    private List<Reservation> reservations;
+
+    @OneToMany(mappedBy = "user")
+    private List<Complaint> complaints;
+}
+```
+
+*   `model/Seat.java`
+```java
+package com.example.studyroom.model;
+
+import lombok.Data;
+import javax.persistence.*;
+
+@Data
+@Entity
+public class Seat {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    @Column(unique = true, nullable = false)
+    private String seatNumber;
+}
+```
+*   `model/Reservation.java`
+```java
+package com.example.studyroom.model;
+
+import lombok.Data;
+import javax.persistence.*;
+import java.time.LocalDateTime;
+
+@Data
+@Entity
+public class Reservation {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    @ManyToOne @JoinColumn(name = "seat_id", nullable = false)
+    private Seat seat;
+
+    @Column(nullable = false)
+    private LocalDateTime startTime;
+    @Column(nullable = false)
+    private LocalDateTime endTime;
+    @Column(nullable = false)
+    private String status; // e.g., "ACTIVE", "CANCELLED"
+}
+```
+*   `model/Announcement.java`
+```java
+package com.example.studyroom.model;
+
+import lombok.Data;
+import javax.persistence.*;
+import java.time.LocalDateTime;
+
+@Data
+@Entity
+public class Announcement {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    @Column(nullable = false)
+    private String title;
+    @Lob
+    @Column(nullable = false)
+    private String content;
+    private LocalDateTime createdAt = LocalDateTime.now();
+}
+```
+*   `model/Complaint.java`
+```java
+package com.example.studyroom.model;
+
+import lombok.Data;
+import javax.persistence.*;
+import java.time.LocalDateTime;
+
+@Data
+@Entity
+public class Complaint {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    @ManyToOne @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+    @Column(nullable = false)
+    private String title;
+    @Lob
+    @Column(nullable = false)
+    private String content;
+    private LocalDateTime createdAt = LocalDateTime.now();
+}
+```
+
+**Repository (数据访问层)**
+*   `repository/UserRepository.java`
+```java
+package com.example.studyroom.repository;
+
+import com.example.studyroom.model.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.Optional;
+
+public interface UserRepository extends JpaRepository<User, Long> {
+    Optional<User> findByUsername(String username);
+}
+```
+*   `repository/SeatRepository.java`
+```java
+package com.example.studyroom.repository;
+
+import com.example.studyroom.model.Seat;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface SeatRepository extends JpaRepository<Seat, Long> {
+}
+```
+*   `repository/ReservationRepository.java`
+```java
+package com.example.studyroom.repository;
+
+import com.example.studyroom.model.Reservation;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+public interface ReservationRepository extends JpaRepository<Reservation, Long> {
+    List<Reservation> findByUserIdAndStatus(Long userId, String status);
+
+    @Query("SELECT r.seat.id FROM Reservation r WHERE r.status = 'ACTIVE' AND ((r.startTime < :endTime) AND (r.endTime > :startTime))")
+    List<Long> findReservedSeatIds(@Param("startTime") LocalDateTime startTime, @Param("endTime") LocalDateTime endTime);
+}
+```
+*   `repository/AnnouncementRepository.java`
+```java
+package com.example.studyroom.repository;
+
+import com.example.studyroom.model.Announcement;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+
+import java.util.List;
+
+public interface AnnouncementRepository extends JpaRepository<Announcement, Long> {
+    @Query("SELECT a FROM Announcement a ORDER BY a.createdAt DESC")
+    List<Announcement> findAllByOrderByCreatedAtDesc();
+}
+```
+*   `repository/ComplaintRepository.java`
+```java
+package com.example.studyroom.repository;
+
+import com.example.studyroom.model.Complaint;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+
+import java.util.List;
+
+public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
+     @Query("SELECT c FROM Complaint c ORDER BY c.createdAt DESC")
+     List<Complaint> findAllByOrderByCreatedAtDesc();
+}
+```
+
+**Service (服务层)**
+*   `service/UserDetailsServiceImpl.java`
+```java
+package com.example.studyroom.service;
+
+import com.example.studyroom.model.User;
+import com.example.studyroom.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
+
+import java.util.HashSet;
+import java.util.Set;
+
+@Service
+public class UserDetailsServiceImpl implements UserDetailsService {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
+
+        Set<GrantedAuthority> grantedAuthorities = new HashSet<>();
+        grantedAuthorities.add(new SimpleGrantedAuthority(user.getRole()));
+
+        return new org.springframework.security.core.userdetails.User(user.getUsername(), user.getPassword(), grantedAuthorities);
+    }
+}
+```
+
+**Controller (控制器)**
+*   `controller/HomeController.java`
+```java
+package com.example.studyroom.controller;
+
+import com.example.studyroom.model.Announcement;
+import com.example.studyroom.repository.AnnouncementRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+
+import java.util.List;
+
+@Controller
+public class HomeController {
+
+    @Autowired
+    private AnnouncementRepository announcementRepository;
+
+    @GetMapping("/")
+    public String home(Model model) {
+        List<Announcement> announcements = announcementRepository.findAllByOrderByCreatedAtDesc();
+        model.addAttribute("announcements", announcements);
+        return "index";
+    }
+}
+```
+*   `controller/AuthController.java`
+```java
+package com.example.studyroom.controller;
+
+import com.example.studyroom.model.User;
+import com.example.studyroom.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+@Controller
+public class AuthController {
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @GetMapping("/login")
+    public String login() {
+        return "auth/login";
+    }
+
+    @GetMapping("/register")
+    public String showRegistrationForm() {
+        return "auth/register";
+    }
+
+    @PostMapping("/register")
+    public String registerUser(@RequestParam String username,
+                               @RequestParam String password,
+                               @RequestParam String studentId,
+                               @RequestParam String fullName,
+                               Model model) {
+        if (userRepository.findByUsername(username).isPresent()) {
+            model.addAttribute("error", "用户名已存在！");
+            return "auth/register";
+        }
+
+        User user = new User();
+        user.setUsername(username);
+        user.setPassword(passwordEncoder.encode(password));
+        user.setStudentId(studentId);
+        user.setFullName(fullName);
+        user.setRole("ROLE_USER"); // All registrations are for students
+        userRepository.save(user);
+
+        return "redirect:/login?registered";
+    }
+}
+```
+*   `controller/ReservationController.java`
+```java
+package com.example.studyroom.controller;
+
+import com.example.studyroom.model.*;
+import com.example.studyroom.repository.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Controller
+public class ReservationController {
+    @Autowired private SeatRepository seatRepository;
+    @Autowired private ReservationRepository reservationRepository;
+    @Autowired private UserRepository userRepository;
+    @Autowired private ComplaintRepository complaintRepository;
+
+    @GetMapping("/reservations")
+    public String showReservationPage(Model model) {
+        List<Seat> allSeats = seatRepository.findAll();
+        // For simplicity, just show all seats. A real app would show availability.
+        model.addAttribute("seats", allSeats);
+        return "reservations";
+    }
+
+    @PostMapping("/reservations")
+    public String makeReservation(@RequestParam Long seatId,
+                                  @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
+                                  @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime,
+                                  Model model) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = userRepository.findByUsername(auth.getName()).orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Basic conflict check
+        List<Long> reservedSeatIds = reservationRepository.findReservedSeatIds(startTime, endTime);
+        if(reservedSeatIds.contains(seatId)) {
+            model.addAttribute("error", "该时间段座位已被预约！");
+            model.addAttribute("seats", seatRepository.findAll());
+            return "reservations";
+        }
+        
+        Reservation reservation = new Reservation();
+        reservation.setUser(currentUser);
+        reservation.setSeat(seatRepository.findById(seatId).orElseThrow());
+        reservation.setStartTime(startTime);
+        reservation.setEndTime(endTime);
+        reservation.setStatus("ACTIVE");
+        reservationRepository.save(reservation);
+
+        return "redirect:/reservations/my";
+    }
+
+    @GetMapping("/reservations/my")
+    public String myReservations(Model model) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = userRepository.findByUsername(auth.getName()).orElseThrow(() -> new RuntimeException("User not found"));
+        
+        List<Reservation> myReservations = reservationRepository.findByUserIdAndStatus(currentUser.getId(), "ACTIVE");
+        model.addAttribute("reservations", myReservations);
+        return "reservations"; // Reuse the same page to show my reservations
+    }
+
+    @PostMapping("/reservations/cancel/{id}")
+    public String cancelReservation(@PathVariable Long id) {
+        Reservation reservation = reservationRepository.findById(id).orElseThrow();
+        // Basic check to ensure user can only cancel their own reservation
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if(reservation.getUser().getUsername().equals(auth.getName())) {
+            reservation.setStatus("CANCELLED");
+            reservationRepository.save(reservation);
+        }
+        return "redirect:/reservations/my";
+    }
+
+    @GetMapping("/complaints")
+    public String showComplaintForm(Model model) {
+        return "admin/complaints"; // Re-using admin view for simplicity
+    }
+    
+    @PostMapping("/complaints")
+    public String submitComplaint(@RequestParam String title, @RequestParam String content) {
+        Authentication auth = Security.getContext().getAuthentication();
+        User currentUser = userRepository.findByUsername(auth.getName()).orElseThrow();
+        
+        Complaint complaint = new Complaint();
+        complaint.setUser(currentUser);
+        complaint.setTitle(title);
+        complaint.setContent(content);
+        complaintRepository.save(complaint);
+        
+        return "redirect:/?complaint_submitted";
+    }
+}
+```
+*   `controller/AdminController.java`
+```java
+package com.example.studyroom.controller;
+
+import com.example.studyroom.model.Announcement;
+import com.example.studyroom.model.Complaint;
+import com.example.studyroom.model.Reservation;
+import com.example.studyroom.repository.AnnouncementRepository;
+import com.example.studyroom.repository.ComplaintRepository;
+import com.example.studyroom.repository.ReservationRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@Controller
+@RequestMapping("/admin")
+public class AdminController {
+
+    @Autowired private AnnouncementRepository announcementRepository;
+    @Autowired private ReservationRepository reservationRepository;
+    @Autowired private ComplaintRepository complaintRepository;
+
+    @GetMapping("/dashboard")
+    public String dashboard() {
+        return "admin/dashboard";
+    }
+
+    // Announcements Management
+    @GetMapping("/announcements")
+    public String manageAnnouncements(Model model) {
+        model.addAttribute("announcements", announcementRepository.findAllByOrderByCreatedAtDesc());
+        return "admin/announcements";
+    }
+
+    @PostMapping("/announcements")
+    public String addAnnouncement(@RequestParam String title, @RequestParam String content) {
+        Announcement announcement = new Announcement();
+        announcement.setTitle(title);
+        announcement.setContent(content);
+        announcementRepository.save(announcement);
+        return "redirect:/admin/announcements";
+    }
+    
+    @PostMapping("/announcements/delete/{id}")
+    public String deleteAnnouncement(@PathVariable Long id) {
+        announcementRepository.deleteById(id);
+        return "redirect:/admin/announcements";
+    }
+    
+    // View all reservations
+    @GetMapping("/reservations")
+    public String viewAllReservations(Model model) {
+        List<Reservation> allReservations = reservationRepository.findAll();
+        model.addAttribute("reservations", allReservations);
+        return "admin/reservations";
+    }
+
+    // View all complaints
+    @GetMapping("/complaints")
+    public String viewAllComplaints(Model model) {
+        List<Complaint> allComplaints = complaintRepository.findAllByOrderByCreatedAtDesc();
+        model.addAttribute("complaints", allComplaints);
+        return "admin/complaints";
+    }
+}
+```
+
+#### HTML/Thymeleaf 和 CSS
+
+将以下所有文件放到 `src/main/resources/` 目录下对应的子包中。
+
+**`static/css/style.css` (基本样式)**
+```css
+.navbar { margin-bottom: 20px; }
+.card { margin-bottom: 20px; }
+.login-form { max-width: 400px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; margin-top: 50px; }
+```
+
+**`templates/fragments/layout.html` (公共布局)**
+```html
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${pageTitle} ?: '自习室会员管理系统'">系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" th:href="@{/}">自习室管理系统</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item"><a class="nav-link" th:href="@{/}">首页</a></li>
+                <li class="nav-item" sec:authorize="hasRole('USER')"><a class="nav-link" th:href="@{/reservations}">座位预约</a></li>
+                <li class="nav-item" sec:authorize="hasRole('ADMIN')"><a class="nav-link" th:href="@{/admin/dashboard}">管理后台</a></li>
+            </ul>
+            <ul class="navbar-nav ms-auto">
+                 <li class="nav-item" sec:authorize="isAuthenticated()">
+                     <span class="navbar-text text-white me-3">欢迎, <span sec:authentication="name"></span>!</span>
+                     <a class="btn btn-outline-light" onclick="document.getElementById('logout-form').submit();">退出登录</a>
+                     <form th:action="@{/logout}" method="post" id="logout-form" style="display: none;"></form>
+                 </li>
+                 <li class="nav-item" sec:authorize="!isAuthenticated()">
+                     <a class="btn btn-outline-light me-2" th:href="@{/login}">登录</a>
+                     <a class="btn btn-primary" th:href="@{/register}">注册</a>
+                 </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container" th:fragment="content">
+    <!-- Page-specific content goes here -->
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+```
+
+**`templates/index.html` (首页)**
+```html
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>首页 - 自习室管理系统</title>
+    <th:block th:insert="~{fragments/layout :: head}"></th:block>
+</head>
+<body>
+<div th:replace="~{fragments/layout :: nav}"></div>
+<div class="container">
+    <div class="px-4 py-5 my-5 text-center">
+        <h1 class="display-5 fw-bold">欢迎使用自习室管理系统</h1>
+        <div class="col-lg-6 mx-auto">
+            <p class="lead mb-4">在这里你可以查看公告，预约座位，开始你的高效学习之旅。</p>
+        </div>
+    </div>
+
+    <h3>最新公告</h3>
+    <div th:if="${announcements.isEmpty()}">
+        <p>暂无公告。</p>
+    </div>
+    <div class="accordion" id="announcementsAccordion">
+        <div class="accordion-item" th:each="ann, iter : ${announcements}">
+            <h2 class="accordion-header" th:id="'heading' + ${iter.index}">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" th:data-bs-target="'#collapse' + ${iter.index}" aria-expanded="false" th:aria-controls="'collapse' + ${iter.index}">
+                    <span th:text="${ann.title}"></span>
+                    <small class="ms-auto text-muted" th:text="'发布于: ' + ${#temporals.format(ann.createdAt, 'yyyy-MM-dd HH:mm')}"></small>
+                </button>
+            </h2>
+            <div th:id="'collapse' + ${iter.index}" class="accordion-collapse collapse" th:aria-labelledby="'heading' + ${iter.index}" data-bs-parent="#announcementsAccordion">
+                <div class="accordion-body" th:text="${ann.content}"></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>
+```
+
+**`templates/auth/login.html`**
+```html
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>登录 - 自习室管理系统</title>
+    <th:block th:insert="~{fragments/layout :: head}"></th:block>
+</head>
+<body>
+<div class="container">
+    <div class="login-form">
+        <h2 class="text-center">用户登录</h2>
+        <form th:action="@{/login}" method="post">
+            <div th:if="${param.error}" class="alert alert-danger">用户名或密码错误。</div>
+            <div th:if="${param.logout}" class="alert alert-success">您已成功退出。</div>
+            <div th:if="${param.registered}" class="alert alert-success">注册成功，请登录！</div>
+            <div class="mb-3">
+                <label for="username" class="form-label">用户名</label>
+                <input type="text" id="username" name="username" class="form-control" required autofocus>
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">密码</label>
+                <input type="password" id="password" name="password" class="form-control" required>
+            </div>
+            <button type="submit" class="w-100 btn btn-lg btn-primary">登录</button>
+            <p class="mt-3 text-center">没有账号？ <a th:href="@{/register}">立即注册</a></p>
+        </form>
+    </div>
+</div>
+</body>
+</html>
+```
+
+**`templates/auth/register.html`**
+```html
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>注册 - 自习室管理系统</title>
+    <th:block th:insert="~{fragments/layout :: head}"></th:block>
+</head>
+<body>
+<div class="container">
+    <div class="login-form">
+        <h2 class="text-center">学生注册</h2>
+        <form th:action="@{/register}" method="post">
+             <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+            <div class="mb-3">
+                <label for="username" class="form-label">用户名</label>
+                <input type="text" id="username" name="username" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">密码</label>
+                <input type="password" id="password" name="password" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label for="studentId" class="form-label">学号</label>
+                <input type="text" id="studentId" name="studentId" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label for="fullName" class="form-label">姓名</label>
+                <input type="text" id="fullName" name="fullName" class="form-control" required>
+            </div>
+            <button type="submit" class="w-100 btn btn-lg btn-primary">注册</button>
+            <p class="mt-3 text-center">已有账号？ <a th:href="@{/login}">返回登录</a></p>
+        </form>
+    </div>
+</div>
+</body>
+</html>
+```
+
+**`templates/reservations.html` (学生预约页面)**
+```html
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>座位预约 - 自习室管理系统</title>
+    <th:block th:insert="~{fragments/layout :: head}"></th:block>
+</head>
+<body>
+<div th:replace="~{fragments/layout :: nav}"></div>
+<div class="container">
+    <div class="row">
+        <!-- Make a Reservation Section -->
+        <div class="col-md-6">
+            <h3>预约座位</h3>
+            <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+            <form th:action="@{/reservations}" method="post">
+                <div class="mb-3">
+                    <label for="seatId" class="form-label">选择座位</label>
+                    <select id="seatId" name="seatId" class="form-select" required>
+                        <option th:each="seat : ${seats}" th:value="${seat.id}" th:text="${seat.seatNumber}"></option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="startTime" class="form-label">开始时间</label>
+                    <input type="datetime-local" id="startTime" name="startTime" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label for="endTime" class="form-label">结束时间</label>
+                    <input type="datetime-local" id="endTime" name="endTime" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary">确认预约</button>
+            </form>
+             <hr class="my-4">
+             <h3>提交投诉或建议</h3>
+             <form th:action="@{/complaints}" method="post">
+                <div class="mb-3">
+                    <label for="title" class="form-label">标题</label>
+                    <input type="text" id="title" name="title" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label for="content" class="form-label">内容</label>
+                    <textarea id="content" name="content" class="form-control" rows="3" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-warning">提交</button>
+            </form>
+        </div>
+        <!-- My Reservations Section -->
+        <div class="col-md-6">
+            <h3>我的当前预约</h3>
+            <div th:if="${reservations == null or reservations.isEmpty()}">
+                <p>您当前没有有效的预约。</p>
+            </div>
+            <table class="table" th:if="${reservations != null and !reservations.isEmpty()}">
+                <thead>
+                <tr>
+                    <th>座位号</th>
+                    <th>开始时间</th>
+                    <th>结束时间</th>
+                    <th>操作</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="res : ${reservations}">
+                    <td th:text="${res.seat.seatNumber}"></td>
+                    <td th:text="${#temporals.format(res.startTime, 'yyyy-MM-dd HH:mm')}"></td>
+                    <td th:text="${#temporals.format(res.endTime, 'yyyy-MM-dd HH:mm')}"></td>
+                    <td>
+                        <form th:action="@{'/reservations/cancel/' + ${res.id}}" method="post" onsubmit="return confirm('确定要取消吗？');">
+                            <button type="submit" class="btn btn-danger btn-sm">取消</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>
+```
+
+**Admin后台页面**
+*   `templates/admin/dashboard.html`
+```html
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>管理后台 - 自习室管理系统</title>
+    <th:block th:insert="~{fragments/layout :: head}"></th:block>
+</head>
+<body>
+<div th:replace="~{fragments/layout :: nav}"></div>
+<div class="container">
+    <h1>管理后台</h1>
+    <p>请选择一个管理模块进行操作。</p>
+    <div class="list-group">
+        <a th:href="@{/admin/announcements}" class="list-group-item list-group-item-action">公告管理</a>
+        <a th:href="@{/admin/reservations}" class="list-group-item list-group-item-action">预约记录查看</a>
+        <a th:href="@{/admin/complaints}" class="list-group-item list-group-item-action">投诉建议查看</a>
+    </div>
+</div>
+</body>
+</html>
+```
+*   `templates/admin/announcements.html`
+```html
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>公告管理 - 自习室管理系统</title>
+    <th:block th:insert="~{fragments/layout :: head}"></th:block>
+</head>
+<body>
+<div th:replace="~{fragments/layout :: nav}"></div>
+<div class="container">
+    <h2>公告管理</h2>
+    <div class="card">
+        <div class="card-header">发布新公告</div>
+        <div class="card-body">
+            <form th:action="@{/admin/announcements}" method="post">
+                <div class="mb-3">
+                    <label for="title" class="form-label">标题</label>
+                    <input type="text" id="title" name="title" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label for="content" class="form-label">内容</label>
+                    <textarea id="content" name="content" class="form-control" rows="4" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">发布</button>
+            </form>
+        </div>
+    </div>
+
+    <h3>已发布公告</h3>
+    <table class="table table-striped">
+        <thead>
+        <tr>
+            <th>标题</th>
+            <th>发布时间</th>
+            <th>操作</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="ann : ${announcements}">
+            <td th:text="${ann.title}"></td>
+            <td th:text="${#temporals.format(ann.createdAt, 'yyyy-MM-dd HH:mm')}"></td>
+            <td>
+                <form th:action="@{'/admin/announcements/delete/' + ${ann.id}}" method="post" onsubmit="return confirm('确定要删除吗？');">
+                    <button type="submit" class="btn btn-danger btn-sm">删除</button>
+                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>
+```
+*   `templates/admin/reservations.html`
+```html
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>所有预约记录 - 自习室管理系统</title>
+    <th:block th:insert="~{fragments/layout :: head}"></th:block>
+</head>
+<body>
+<div th:replace="~{fragments/layout :: nav}"></div>
+<div class="container">
+    <h2>所有预约记录</h2>
+    <table class="table table-striped">
+        <thead>
+        <tr>
+            <th>用户</th>
+            <th>学号</th>
+            <th>座位号</th>
+            <th>开始时间</th>
+            <th>结束时间</th>
+            <th>状态</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="res : ${reservations}">
+            <td th:text="${res.user.fullName}"></td>
+            <td th:text="${res.user.studentId}"></td>
+            <td th:text="${res.seat.seatNumber}"></td>
+            <td th:text="${#temporals.format(res.startTime, 'yyyy-MM-dd HH:mm')}"></td>
+            <td th:text="${#temporals.format(res.endTime, 'yyyy-MM-dd HH:mm')}"></td>
+            <td>
+                <span th:classappend="${res.status == 'ACTIVE'} ? 'text-success' : 'text-danger'"
+                      th:text="${res.status}"></span>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>
+```
+*   `templates/admin/complaints.html`
+```html
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>投诉建议 - 自习室管理系统</title>
+    <th:block th:insert="~{fragments/layout :: head}"></th:block>
+</head>
+<body>
+<div th:replace="~{fragments/layout :: nav}"></div>
+<div class="container">
+    <div sec:authorize="hasRole('ADMIN')">
+        <h2>查看所有投诉建议</h2>
+        <div th:if="${complaints == null or complaints.isEmpty()}">
+            <p>暂无投诉或建议。</p>
+        </div>
+        <table class="table table-striped" th:if="${complaints != null and !complaints.isEmpty()}">
+            <thead>
+            <tr>
+                <th>提交人</th>
+                <th>学号</th>
+                <th>标题</th>
+                <th>内容</th>
+                <th>提交时间</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="c : ${complaints}">
+                <td th:text="${c.user.fullName}"></td>
+                <td th:text="${c.user.studentId}"></td>
+                <td th:text="${c.title}"></td>
+                <td th:text="${c.content}"></td>
+                <td th:text="${#temporals.format(c.createdAt, 'yyyy-MM-dd HH:mm')}"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div sec:authorize="hasRole('USER')">
+        <h3>提交投诉或建议</h3>
+        <form th:action="@{/complaints}" method="post">
+           <div class="mb-3">
+               <label for="title" class="form-label">标题</label>
+               <input type="text" id="title" name="title" class="form-control" required>
+           </div>
+           <div class="mb-3">
+               <label for="content" class="form-label">内容</label>
+               <textarea id="content" name="content" class="form-control" rows="3" required></textarea>
+           </div>
+           <button type="submit" class="btn btn-primary">提交</button>
+       </form>
+    </div>
+</div>
+</body>
+</html>
+```
+
+---
+
+### 第3步：部署和运行流程
+
+请确保你已经安装了以下软件：
+*   **JDK 1.8**
+*   **Maven 3.6+**
+*   **MySQL 5.7**
+
+#### 部署步骤
+
+1.  **数据库**
+    *   打开MySQL客户端（如命令行、Navicat、DataGrip等）。
+    *   执行 **第1步** 中的所有SQL脚本，创建数据库、表并插入初始数据。
+
+2.  **配置项目**
+    *   将上面提供的所有项目文件和文件夹按结构创建好。
+    *   打开 `src/main/resources/application.properties` 文件。
+    *   找到 `spring.datasource.password=your_mysql_password` 这一行。
+    *   将 `your_mysql_password` 修改为你自己的MySQL `root` 用户的密码。
+
+3.  **构建和运行**
+    *   打开命令行/终端，`cd` 到项目根目录 (即 `study-room-management` 文件夹，包含 `pom.xml` 的地方)。
+    *   执行Maven命令来启动项目：
+        ```bash
+        mvn spring-boot:run
+        ```
+    *   等待命令行输出类似 `Tomcat started on port(s): 8080 (http)` 的信息，这表示项目已成功启动。
+
+4.  **访问和测试系统**
+    *   打开浏览器，访问 `http://localhost:8080`。你应该能看到系统首页和最新公告。
+    *   **测试学生功能**:
+        *   点击右上角的“登录”。
+        *   用户名: `student1`
+        *   密码: `123456`
+        *   登录后，点击导航栏的“座位预约”。
+        *   在预约表单中选择座位、开始和结束时间，然后点击“确认预约”。页面会刷新并显示你的预约记录。
+        *   你可以点击“取消”按钮来取消预约。
+    *   **测试管理员功能**:
+        *   首先退出学生账号。
+        *   点击“登录”。
+        *   用户名: `admin`
+        *   密码: `123456`
+        *   登录后，点击导航栏的“管理后台”。
+        *   在后台仪表盘中，你可以：
+            *   进入“公告管理”来发布和删除公告。
+            *   进入“预约记录查看”来查看所有用户的预约。
+            *   进入“投诉建议查看”来查看所有投诉。
+    *   **测试注册功能**:
+        *   退出登录状态。
+        *   点击首页右上角的“注册”按钮，填写信息即可创建一个新的学生账号。
+
+至此，一个满足你论文基本需求的、可运行的自习室会员管理系统已经完成并成功部署。

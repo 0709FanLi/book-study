@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>所有预约记录 - 自习室管理系统</title>
+    <th:block th:insert="~{fragments/layout :: head}"></th:block>
+</head>
+<body>
+<div th:replace="~{fragments/layout :: nav}"></div>
+<div class="container">
+    <h2>所有预约记录</h2>
+    <div th:if="${reservations.isEmpty()}">
+        <p>暂无预约记录。</p>
+    </div>
+    <table class="table table-striped" th:if="${!reservations.isEmpty()}">
+        <thead>
+        <tr>
+            <th>用户</th>
+            <th>学号</th>
+            <th>座位号</th>
+            <th>开始时间</th>
+            <th>结束时间</th>
+            <th>状态</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="res : ${reservations}">
+            <td th:text="${res.user.fullName}"></td>
+            <td th:text="${res.user.studentId}"></td>
+            <td th:text="${res.seat.seatNumber}"></td>
+            <td th:text="${#temporals.format(res.startTime, 'yyyy-MM-dd HH:mm')}"></td>
+            <td th:text="${#temporals.format(res.endTime, 'yyyy-MM-dd HH:mm')}"></td>
+            <td>
+                <span th:classappend="${res.status == 'ACTIVE'} ? 'text-success' : 'text-danger'"
+                      th:text="${res.status}"></span>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html> 

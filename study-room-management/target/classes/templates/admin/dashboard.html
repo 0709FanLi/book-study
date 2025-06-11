@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>管理后台 - 自习室管理系统</title>
+    <th:block th:insert="~{fragments/layout :: head}"></th:block>
+</head>
+<body>
+<div th:replace="~{fragments/layout :: nav}"></div>
+<div class="container">
+    <h1>管理后台</h1>
+    <p>请选择一个管理模块进行操作。</p>
+    <div class="list-group">
+        <a th:href="@{/admin/announcements}" class="list-group-item list-group-item-action">
+            <div class="d-flex w-100 justify-content-between">
+                <h5 class="mb-1">公告管理</h5>
+            </div>
+            <p class="mb-1">发布、编辑和删除系统公告</p>
+        </a>
+        <a th:href="@{/admin/reservations}" class="list-group-item list-group-item-action">
+            <div class="d-flex w-100 justify-content-between">
+                <h5 class="mb-1">预约记录查看</h5>
+            </div>
+            <p class="mb-1">查看所有学生的座位预约记录</p>
+        </a>
+        <a th:href="@{/admin/complaints}" class="list-group-item list-group-item-action">
+            <div class="d-flex w-100 justify-content-between">
+                <h5 class="mb-1">投诉建议查看</h5>
+            </div>
+            <p class="mb-1">查看学生提交的投诉和建议</p>
+        </a>
+        <a th:href="@{/admin/analytics}" class="list-group-item list-group-item-action">
+            <div class="d-flex w-100 justify-content-between">
+                <h5 class="mb-1"><i class="fas fa-chart-line me-2"></i>数据分析</h5>
+            </div>
+            <p class="mb-1">查看系统使用统计和数据分析图表</p>
+        </a>
+    </div>
+</div>
+<!-- Font Awesome图标 -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</body>
+</html> 

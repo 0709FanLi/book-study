@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>公告管理 - 自习室管理系统</title>
+    <th:block th:insert="~{fragments/layout :: head}"></th:block>
+</head>
+<body>
+<div th:replace="~{fragments/layout :: nav}"></div>
+<div class="container">
+    <h2>公告管理</h2>
+    <div class="card">
+        <div class="card-header">发布新公告</div>
+        <div class="card-body">
+            <form th:action="@{/admin/announcements}" method="post">
+                <div class="mb-3">
+                    <label for="title" class="form-label">标题</label>
+                    <input type="text" id="title" name="title" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label for="content" class="form-label">内容</label>
+                    <textarea id="content" name="content" class="form-control" rows="4" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">发布</button>
+            </form>
+        </div>
+    </div>
+
+    <h3>已发布公告</h3>
+    <div th:if="${announcements.isEmpty()}">
+        <p>暂无公告。</p>
+    </div>
+    <table class="table table-striped" th:if="${!announcements.isEmpty()}">
+        <thead>
+        <tr>
+            <th>标题</th>
+            <th>发布时间</th>
+            <th>操作</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="ann : ${announcements}">
+            <td th:text="${ann.title}"></td>
+            <td th:text="${#temporals.format(ann.createdAt, 'yyyy-MM-dd HH:mm')}"></td>
+            <td>
+                <form th:action="@{'/admin/announcements/delete/' + ${ann.id}}" method="post" style="display: inline;" onsubmit="return confirm('确定要删除吗？');">
+                    <button type="submit" class="btn btn-danger btn-sm">删除</button>
+                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html> 

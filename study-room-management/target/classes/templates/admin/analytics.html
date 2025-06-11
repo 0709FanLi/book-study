@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>数据分析 - 自习室管理系统</title>
+    <th:block th:insert="~{fragments/layout :: head}"></th:block>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div th:replace="~{fragments/layout :: nav}"></div>
+<div class="container">
+    <h2>数据分析</h2>
+    
+    <!-- 统计卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div>
+                            <h4 class="mb-0" th:text="${totalUsers}">0</h4>
+                            <small>总用户数</small>
+                        </div>
+                        <div class="ms-auto">
+                            <i class="fas fa-users fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div>
+                            <h4 class="mb-0" th:text="${totalSeats}">0</h4>
+                            <small>座位总数</small>
+                        </div>
+                        <div class="ms-auto">
+                            <i class="fas fa-chair fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div>
+                            <h4 class="mb-0" th:text="${totalReservations}">0</h4>
+                            <small>总预约数</small>
+                        </div>
+                        <div class="ms-auto">
+                            <i class="fas fa-calendar-check fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div>
+                            <h4 class="mb-0" th:text="${activeReservations}">0</h4>
+                            <small>当前活跃预约</small>
+                        </div>
+                        <div class="ms-auto">
+                            <i class="fas fa-clock fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 图表区域 -->
+    <div class="row">
+        <!-- 预约趋势折线图 -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>最近7天预约趋势</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="reservationTrendChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 座位使用率柱状图 -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>座位使用率统计</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="seatUsageChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- 用户活跃度柱状图 -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>用户活跃度排行（Top 10）</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="userActivityChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 时间段使用分析折线图 -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>24小时时间段使用分析</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="hourlyUsageChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 预约趋势折线图
+fetch('/admin/analytics/reservation-trend')
+    .then(response => response.json())
+    .then(data => {
+        const ctx = document.getElementById('reservationTrendChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.dates,
+                datasets: [{
+                    label: '预约数量',
+                    data: data.counts,
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    tension: 0.1,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                }
+            }
+        });
+    });
+
+// 座位使用率柱状图
+fetch('/admin/analytics/seat-usage')
+    .then(response => response.json())
+    .then(data => {
+        const ctx = document.getElementById('seatUsageChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.seatNumbers,
+                datasets: [{
+                    label: '使用次数',
+                    data: data.usageCounts,
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.8)',
+                        'rgba(54, 162, 235, 0.8)',
+                        'rgba(255, 205, 86, 0.8)',
+                        'rgba(75, 192, 192, 0.8)',
+                        'rgba(153, 102, 255, 0.8)',
+                        'rgba(255, 159, 64, 0.8)',
+                        'rgba(199, 199, 199, 0.8)',
+                        'rgba(83, 102, 255, 0.8)',
+                        'rgba(255, 99, 255, 0.8)',
+                        'rgba(99, 255, 132, 0.8)'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    });
+
+// 用户活跃度柱状图
+fetch('/admin/analytics/user-activity')
+    .then(response => response.json())
+    .then(data => {
+        // 只显示前10个用户
+        const top10Users = data.userNames.slice(0, 10);
+        const top10Counts = data.reservationCounts.slice(0, 10);
+        
+        const ctx = document.getElementById('userActivityChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: top10Users,
+                datasets: [{
+                    label: '预约次数',
+                    data: top10Counts,
+                    backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y', // 水平柱状图
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    });
+
+// 时间段使用分析折线图
+fetch('/admin/analytics/hourly-usage')
+    .then(response => response.json())
+    .then(data => {
+        const ctx = document.getElementById('hourlyUsageChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.hours,
+                datasets: [{
+                    label: '使用次数',
+                    data: data.counts,
+                    borderColor: 'rgb(255, 99, 132)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            maxTicksLimit: 12 // 只显示12个时间点
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                }
+            }
+        });
+    });
+</script>
+
+<!-- Font Awesome图标 -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</body>
+</html> 

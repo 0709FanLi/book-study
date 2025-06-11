@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>首页 - 自习室管理系统</title>
+    <th:block th:insert="~{fragments/layout :: head}"></th:block>
+</head>
+<body>
+<div th:replace="~{fragments/layout :: nav}"></div>
+<div class="container">
+    <div class="px-4 py-5 my-5 text-center">
+        <h1 class="display-5 fw-bold">欢迎使用自习室管理系统</h1>
+        <div class="col-lg-6 mx-auto">
+            <p class="lead mb-4">在这里你可以查看公告，预约座位，开始你的高效学习之旅。</p>
+        </div>
+    </div>
+
+    <h3>最新公告</h3>
+    <div th:if="${announcements.isEmpty()}">
+        <p>暂无公告。</p>
+    </div>
+    <div class="accordion" id="announcementsAccordion">
+        <div class="accordion-item" th:each="ann, iter : ${announcements}">
+            <h2 class="accordion-header" th:id="'heading' + ${iter.index}">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" th:data-bs-target="'#collapse' + ${iter.index}" aria-expanded="false" th:aria-controls="'collapse' + ${iter.index}">
+                    <span th:text="${ann.title}"></span>
+                    <small class="ms-auto text-muted" th:text="'发布于: ' + ${#temporals.format(ann.createdAt, 'yyyy-MM-dd HH:mm')}"></small>
+                </button>
+            </h2>
+            <div th:id="'collapse' + ${iter.index}" class="accordion-collapse collapse" th:aria-labelledby="'heading' + ${iter.index}" data-bs-parent="#announcementsAccordion">
+                <div class="accordion-body" th:text="${ann.content}"></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html> 

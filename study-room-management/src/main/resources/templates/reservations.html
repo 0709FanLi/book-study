@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>座位预约 - 自习室管理系统</title>
+    <th:block th:insert="~{fragments/layout :: head}"></th:block>
+</head>
+<body>
+<div th:replace="~{fragments/layout :: nav}"></div>
+<div class="container">
+    <div class="row">
+        <!-- Make a Reservation Section -->
+        <div class="col-md-6">
+            <h3>预约座位</h3>
+            <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+            <div th:if="${param.complaint_submitted}" class="alert alert-success">投诉提交成功！</div>
+            <form th:action="@{/reservations}" method="post">
+                <div class="mb-3">
+                    <label for="seatId" class="form-label">选择座位</label>
+                    <select id="seatId" name="seatId" class="form-select" required>
+                        <option th:each="seat : ${seats}" th:value="${seat.id}" th:text="${seat.seatNumber}"></option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="startTime" class="form-label">开始时间</label>
+                    <input type="datetime-local" id="startTime" name="startTime" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label for="endTime" class="form-label">结束时间</label>
+                    <input type="datetime-local" id="endTime" name="endTime" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary">确认预约</button>
+            </form>
+             <hr class="my-4">
+             <h3>提交投诉或建议</h3>
+             <form th:action="@{/complaints}" method="post">
+                <div class="mb-3">
+                    <label for="title" class="form-label">标题</label>
+                    <input type="text" id="title" name="title" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label for="content" class="form-label">内容</label>
+                    <textarea id="content" name="content" class="form-control" rows="3" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-warning">提交</button>
+            </form>
+        </div>
+        <!-- My Reservations Section -->
+        <div class="col-md-6">
+            <h3>我的当前预约</h3>
+            <div th:if="${reservations == null or reservations.isEmpty()}">
+                <p>您当前没有有效的预约。</p>
+            </div>
+            <table class="table" th:if="${reservations != null and !reservations.isEmpty()}">
+                <thead>
+                <tr>
+                    <th>座位号</th>
+                    <th>开始时间</th>
+                    <th>结束时间</th>
+                    <th>操作</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="res : ${reservations}">
+                    <td th:text="${res.seat.seatNumber}"></td>
+                    <td th:text="${#temporals.format(res.startTime, 'yyyy-MM-dd HH:mm')}"></td>
+                    <td th:text="${#temporals.format(res.endTime, 'yyyy-MM-dd HH:mm')}"></td>
+                    <td>
+                        <form th:action="@{'/reservations/cancel/' + ${res.id}}" method="post" style="display: inline;" onsubmit="return confirm('确定要取消吗？');">
+                            <button type="submit" class="btn btn-danger btn-sm">取消</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html> 

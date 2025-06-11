@@ -1,0 +1,83 @@
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::               (v2.5.14)
+
+2025-06-12 00:22:08.180  INFO 92650 --- [           main] c.e.studyroom.StudyRoomApplication       : Starting StudyRoomApplication v0.0.1-SNAPSHOT using Java 1.8.0_161 on 192.168.1.10 with PID 92650 (/Users/Macx/Desktop/615/study-room-management/target/study-room-management-0.0.1-SNAPSHOT.jar started by mf.d in /Users/Macx/Desktop/615/study-room-management)
+2025-06-12 00:22:08.183  INFO 92650 --- [           main] c.e.studyroom.StudyRoomApplication       : No active profile set, falling back to 1 default profile: "default"
+2025-06-12 00:22:09.054  INFO 92650 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-06-12 00:22:09.157  INFO 92650 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 93 ms. Found 5 JPA repository interfaces.
+2025-06-12 00:22:09.573  INFO 92650 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler@5a63f509' of type [org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2025-06-12 00:22:09.579  INFO 92650 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'methodSecurityMetadataSource' of type [org.springframework.security.access.method.DelegatingMethodSecurityMetadataSource] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2025-06-12 00:22:09.911  INFO 92650 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8082 (http)
+2025-06-12 00:22:09.927  INFO 92650 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-06-12 00:22:09.927  INFO 92650 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.63]
+2025-06-12 00:22:10.060  INFO 92650 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2025-06-12 00:22:10.060  INFO 92650 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1817 ms
+2025-06-12 00:22:10.425  INFO 92650 --- [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-06-12 00:22:10.652  INFO 92650 --- [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 5.4.33
+2025-06-12 00:22:10.891  INFO 92650 --- [           main] o.hibernate.annotations.common.Version   : HCANN000001: Hibernate Commons Annotations {5.1.2.Final}
+2025-06-12 00:22:11.060  INFO 92650 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2025-06-12 00:22:11.300  INFO 92650 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2025-06-12 00:22:11.324  INFO 92650 --- [           main] org.hibernate.dialect.Dialect            : HHH000400: Using dialect: org.hibernate.dialect.MySQL57Dialect
+2025-06-12 00:22:12.221  INFO 92650 --- [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000490: Using JtaPlatform implementation: [org.hibernate.engine.transaction.jta.platform.internal.NoJtaPlatform]
+2025-06-12 00:22:12.236  INFO 92650 --- [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-06-12 00:22:12.308  WARN 92650 --- [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2025-06-12 00:22:13.550  INFO 92650 --- [           main] o.s.s.web.DefaultSecurityFilterChain     : Will not secure any request
+2025-06-12 00:22:14.046  INFO 92650 --- [           main] o.s.b.a.w.s.WelcomePageHandlerMapping    : Adding welcome page template: index
+2025-06-12 00:22:14.305  INFO 92650 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8082 (http) with context path ''
+2025-06-12 00:22:14.318  INFO 92650 --- [           main] c.e.studyroom.StudyRoomApplication       : Started StudyRoomApplication in 6.606 seconds (JVM running for 7.202)
+2025-06-12 00:22:35.099  INFO 92650 --- [nio-8082-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-06-12 00:22:35.099  INFO 92650 --- [nio-8082-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2025-06-12 00:22:35.100  INFO 92650 --- [nio-8082-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms
+Hibernate: select announceme0_.id as id1_0_, announceme0_.content as content2_0_, announceme0_.created_at as created_3_0_, announceme0_.title as title4_0_ from announcement announceme0_ order by announceme0_.created_at DESC
+Hibernate: select user0_.id as id1_4_, user0_.full_name as full_nam2_4_, user0_.password as password3_4_, user0_.role as role4_4_, user0_.student_id as student_5_4_, user0_.username as username6_4_ from user user0_ where user0_.username=?
+Hibernate: select count(*) as col_0_0_ from user user0_
+Hibernate: select count(*) as col_0_0_ from seat seat0_
+Hibernate: select count(*) as col_0_0_ from reservation reservatio0_
+Hibernate: select count(reservatio0_.id) as col_0_0_ from reservation reservatio0_ where reservatio0_.status=?
+Hibernate: select date(reservatio0_.start_time) as col_0_0_, count(reservatio0_.id) as col_1_0_ from reservation reservatio0_ where reservatio0_.start_time>=? and reservatio0_.start_time<=? group by date(reservatio0_.start_time)
+Hibernate: select date(reservatio0_.start_time) as col_0_0_, count(reservatio0_.id) as col_1_0_ from reservation reservatio0_ where reservatio0_.start_time>=? and reservatio0_.start_time<=? group by date(reservatio0_.start_time)
+Hibernate: select seat1_.seat_number as col_0_0_, count(reservatio0_.id) as col_1_0_ from reservation reservatio0_ inner join seat seat1_ on reservatio0_.seat_id=seat1_.id group by seat1_.seat_number order by count(reservatio0_.id) DESC
+Hibernate: select user1_.full_name as col_0_0_, count(reservatio0_.id) as col_1_0_ from reservation reservatio0_ inner join user user1_ on reservatio0_.user_id=user1_.id group by user1_.full_name order by count(reservatio0_.id) DESC
+Hibernate: select hour(reservatio0_.start_time) as col_0_0_, count(reservatio0_.id) as col_1_0_ from reservation reservatio0_ group by hour(reservatio0_.start_time)
+Hibernate: select announceme0_.id as id1_0_, announceme0_.content as content2_0_, announceme0_.created_at as created_3_0_, announceme0_.title as title4_0_ from announcement announceme0_ order by announceme0_.created_at DESC
+Hibernate: select announceme0_.id as id1_0_, announceme0_.content as content2_0_, announceme0_.created_at as created_3_0_, announceme0_.title as title4_0_ from announcement announceme0_ order by announceme0_.created_at DESC
+Hibernate: select user0_.id as id1_4_, user0_.full_name as full_nam2_4_, user0_.password as password3_4_, user0_.role as role4_4_, user0_.student_id as student_5_4_, user0_.username as username6_4_ from user user0_ where user0_.username=?
+Hibernate: select announceme0_.id as id1_0_, announceme0_.content as content2_0_, announceme0_.created_at as created_3_0_, announceme0_.title as title4_0_ from announcement announceme0_ order by announceme0_.created_at DESC
+Hibernate: select announceme0_.id as id1_0_, announceme0_.content as content2_0_, announceme0_.created_at as created_3_0_, announceme0_.title as title4_0_ from announcement announceme0_ order by announceme0_.created_at DESC
+Hibernate: select count(*) as col_0_0_ from user user0_
+Hibernate: select count(*) as col_0_0_ from seat seat0_
+Hibernate: select count(*) as col_0_0_ from reservation reservatio0_
+Hibernate: select count(reservatio0_.id) as col_0_0_ from reservation reservatio0_ where reservatio0_.status=?
+Hibernate: select hour(reservatio0_.start_time) as col_0_0_, count(reservatio0_.id) as col_1_0_ from reservation reservatio0_ group by hour(reservatio0_.start_time)
+Hibernate: select date(reservatio0_.start_time) as col_0_0_, count(reservatio0_.id) as col_1_0_ from reservation reservatio0_ where reservatio0_.start_time>=? and reservatio0_.start_time<=? group by date(reservatio0_.start_time)
+Hibernate: select user1_.full_name as col_0_0_, count(reservatio0_.id) as col_1_0_ from reservation reservatio0_ inner join user user1_ on reservatio0_.user_id=user1_.id group by user1_.full_name order by count(reservatio0_.id) DESC
+Hibernate: select seat1_.seat_number as col_0_0_, count(reservatio0_.id) as col_1_0_ from reservation reservatio0_ inner join seat seat1_ on reservatio0_.seat_id=seat1_.id group by seat1_.seat_number order by count(reservatio0_.id) DESC
+Hibernate: select count(*) as col_0_0_ from user user0_
+Hibernate: select count(*) as col_0_0_ from seat seat0_
+Hibernate: select count(*) as col_0_0_ from reservation reservatio0_
+Hibernate: select count(reservatio0_.id) as col_0_0_ from reservation reservatio0_ where reservatio0_.status=?
+Hibernate: select seat1_.seat_number as col_0_0_, count(reservatio0_.id) as col_1_0_ from reservation reservatio0_ inner join seat seat1_ on reservatio0_.seat_id=seat1_.id group by seat1_.seat_number order by count(reservatio0_.id) DESC
+Hibernate: select date(reservatio0_.start_time) as col_0_0_, count(reservatio0_.id) as col_1_0_ from reservation reservatio0_ where reservatio0_.start_time>=? and reservatio0_.start_time<=? group by date(reservatio0_.start_time)
+Hibernate: select user1_.full_name as col_0_0_, count(reservatio0_.id) as col_1_0_ from reservation reservatio0_ inner join user user1_ on reservatio0_.user_id=user1_.id group by user1_.full_name order by count(reservatio0_.id) DESC
+Hibernate: select hour(reservatio0_.start_time) as col_0_0_, count(reservatio0_.id) as col_1_0_ from reservation reservatio0_ group by hour(reservatio0_.start_time)
+Hibernate: select user0_.id as id1_4_, user0_.full_name as full_nam2_4_, user0_.password as password3_4_, user0_.role as role4_4_, user0_.student_id as student_5_4_, user0_.username as username6_4_ from user user0_ where user0_.username=?
+Hibernate: update user set full_name=?, password=?, role=?, student_id=?, username=? where id=?
+Hibernate: select user0_.id as id1_4_, user0_.full_name as full_nam2_4_, user0_.password as password3_4_, user0_.role as role4_4_, user0_.student_id as student_5_4_, user0_.username as username6_4_ from user user0_ where user0_.username=?
+Hibernate: select user0_.id as id1_4_, user0_.full_name as full_nam2_4_, user0_.password as password3_4_, user0_.role as role4_4_, user0_.student_id as student_5_4_, user0_.username as username6_4_ from user user0_ where user0_.username=?
+Hibernate: select announceme0_.id as id1_0_, announceme0_.content as content2_0_, announceme0_.created_at as created_3_0_, announceme0_.title as title4_0_ from announcement announceme0_ order by announceme0_.created_at DESC
+Hibernate: select count(*) as col_0_0_ from user user0_
+Hibernate: select count(*) as col_0_0_ from seat seat0_
+Hibernate: select count(*) as col_0_0_ from reservation reservatio0_
+Hibernate: select count(reservatio0_.id) as col_0_0_ from reservation reservatio0_ where reservatio0_.status=?
+Hibernate: select hour(reservatio0_.start_time) as col_0_0_, count(reservatio0_.id) as col_1_0_ from reservation reservatio0_ group by hour(reservatio0_.start_time)
+Hibernate: select user1_.full_name as col_0_0_, count(reservatio0_.id) as col_1_0_ from reservation reservatio0_ inner join user user1_ on reservatio0_.user_id=user1_.id group by user1_.full_name order by count(reservatio0_.id) DESC
+Hibernate: select seat1_.seat_number as col_0_0_, count(reservatio0_.id) as col_1_0_ from reservation reservatio0_ inner join seat seat1_ on reservatio0_.seat_id=seat1_.id group by seat1_.seat_number order by count(reservatio0_.id) DESC
+Hibernate: select date(reservatio0_.start_time) as col_0_0_, count(reservatio0_.id) as col_1_0_ from reservation reservatio0_ where reservatio0_.start_time>=? and reservatio0_.start_time<=? group by date(reservatio0_.start_time)
+Hibernate: select announceme0_.id as id1_0_, announceme0_.content as content2_0_, announceme0_.created_at as created_3_0_, announceme0_.title as title4_0_ from announcement announceme0_ order by announceme0_.created_at DESC
+Hibernate: select announceme0_.id as id1_0_, announceme0_.content as content2_0_, announceme0_.created_at as created_3_0_, announceme0_.title as title4_0_ from announcement announceme0_ order by announceme0_.created_at DESC
