@@ -9,6 +9,7 @@ import com.example.studyroom.repository.ReservationRepository;
 import com.example.studyroom.repository.UserRepository;
 import com.example.studyroom.repository.SeatRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +18,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/admin")
@@ -70,15 +72,22 @@ public class AdminController {
         model.addAttribute("complaints", allComplaints);
         return "admin/complaints";
     }
-
-    // 数据分析页面
-    @GetMapping("/analytics") 
+    
+    // Analytics main page
+    @GetMapping("/analytics")
     public String analytics(Model model) {
-        // 基础统计数据
+        // 统计数据
         long totalUsers = userRepository.count();
         long totalSeats = seatRepository.count();
         long totalReservations = reservationRepository.count();
-        long activeReservations = reservationRepository.countByStatus("ACTIVE");
+        
+        // 当前活跃预约数
+        LocalDateTime now = LocalDateTime.now();
+        List<Reservation> allReservations = reservationRepository.findAll();
+        long activeReservations = allReservations.stream()
+            .filter(r -> "ACTIVE".equals(r.getStatus()) || "EXTENDED".equals(r.getStatus()))
+            .filter(r -> r.getStartTime().isBefore(now) && r.getEndTime().isAfter(now))
+            .count();
         
         model.addAttribute("totalUsers", totalUsers);
         model.addAttribute("totalSeats", totalSeats);
@@ -88,118 +97,122 @@ public class AdminController {
         return "admin/analytics";
     }
     
-    // 获取最近7天的预约数据(API)
+    // API: 预约趋势数据（最近7天）
     @GetMapping("/analytics/reservation-trend")
     @ResponseBody
-    public Map<String, Object> getReservationTrend() {
-        List<Object[]> data = reservationRepository.getReservationCountByDateRange(
-            LocalDateTime.now().minusDays(6).toLocalDate().atStartOfDay(),
-            LocalDateTime.now()
-        );
+    public ResponseEntity<Map<String, Object>> getReservationTrend() {
+        List<Reservation> allReservations = reservationRepository.findAll();
+        
+        // 获取最近7天的数据
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate = endDate.minusDays(6);
         
         List<String> dates = new ArrayList<>();
         List<Long> counts = new ArrayList<>();
         
-        // 创建最近7天的日期列表
-        for (int i = 6; i >= 0; i--) {
-            LocalDate date = LocalDate.now().minusDays(i);
-            dates.add(date.format(DateTimeFormatter.ofPattern("MM-dd")));
-        }
-        
-        // 初始化计数为0
-        Map<String, Long> countMap = new HashMap<>();
-        for (String date : dates) {
-            countMap.put(date, 0L);
-        }
-        
-        // 填充实际数据
-        for (Object[] row : data) {
-            LocalDate date = ((java.sql.Date) row[0]).toLocalDate();
-            String dateStr = date.format(DateTimeFormatter.ofPattern("MM-dd"));
-            Long count = (Long) row[1];
-            countMap.put(dateStr, count);
-        }
-        
-        // 转换为列表
-        for (String date : dates) {
-            counts.add(countMap.get(date));
+        for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
+            final LocalDate currentDate = date; // 创建final变量用于lambda表达式
+            dates.add(currentDate.format(DateTimeFormatter.ofPattern("MM-dd")));
+            
+            long count = allReservations.stream()
+                .filter(r -> r.getCreatedAt() != null)
+                .filter(r -> r.getCreatedAt().toLocalDate().equals(currentDate))
+                .count();
+            counts.add(count);
         }
         
         Map<String, Object> result = new HashMap<>();
         result.put("dates", dates);
         result.put("counts", counts);
         
-        return result;
+        return ResponseEntity.ok(result);
     }
     
-    // 获取座位使用率数据(API)
+    // API: 座位使用率数据
     @GetMapping("/analytics/seat-usage")
     @ResponseBody
-    public Map<String, Object> getSeatUsage() {
-        List<Object[]> data = reservationRepository.getSeatUsageStats();
+    public ResponseEntity<Map<String, Object>> getSeatUsage() {
+        List<Reservation> allReservations = reservationRepository.findAll();
         
-        List<String> seatNumbers = new ArrayList<>();
-        List<Long> usageCounts = new ArrayList<>();
+        // 按座位分组统计使用次数
+        Map<String, Long> seatUsageMap = allReservations.stream()
+            .collect(Collectors.groupingBy(
+                r -> r.getSeat().getSeatNumber(),
+                Collectors.counting()
+            ));
         
-        for (Object[] row : data) {
-            seatNumbers.add((String) row[0]);
-            usageCounts.add((Long) row[1]);
-        }
+        // 转换为列表格式
+        List<String> seatNumbers = new ArrayList<>(seatUsageMap.keySet());
+        List<Long> usageCounts = seatNumbers.stream()
+            .map(seatUsageMap::get)
+            .collect(Collectors.toList());
         
         Map<String, Object> result = new HashMap<>();
         result.put("seatNumbers", seatNumbers);
         result.put("usageCounts", usageCounts);
         
-        return result;
+        return ResponseEntity.ok(result);
     }
     
-    // 获取用户活跃度数据(API)
+    // API: 用户活跃度数据
     @GetMapping("/analytics/user-activity")
     @ResponseBody
-    public Map<String, Object> getUserActivity() {
-        List<Object[]> data = reservationRepository.getUserActivityStats();
+    public ResponseEntity<Map<String, Object>> getUserActivity() {
+        List<Reservation> allReservations = reservationRepository.findAll();
         
-        List<String> userNames = new ArrayList<>();
-        List<Long> reservationCounts = new ArrayList<>();
+        // 按用户分组统计预约次数
+        Map<String, Long> userActivityMap = allReservations.stream()
+            .collect(Collectors.groupingBy(
+                r -> r.getUser().getFullName() != null ? r.getUser().getFullName() : r.getUser().getUsername(),
+                Collectors.counting()
+            ));
         
-        for (Object[] row : data) {
-            userNames.add((String) row[0]);
-            reservationCounts.add((Long) row[1]);
-        }
+        // 按预约次数降序排序
+        List<Map.Entry<String, Long>> sortedEntries = userActivityMap.entrySet().stream()
+            .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+            .collect(Collectors.toList());
+        
+        List<String> userNames = sortedEntries.stream()
+            .map(Map.Entry::getKey)
+            .collect(Collectors.toList());
+        List<Long> reservationCounts = sortedEntries.stream()
+            .map(Map.Entry::getValue)
+            .collect(Collectors.toList());
         
         Map<String, Object> result = new HashMap<>();
         result.put("userNames", userNames);
         result.put("reservationCounts", reservationCounts);
         
-        return result;
+        return ResponseEntity.ok(result);
     }
     
-    // 获取时间段分析数据(API)
+    // API: 24小时时间段使用分析
     @GetMapping("/analytics/hourly-usage")
     @ResponseBody
-    public Map<String, Object> getHourlyUsage() {
-        List<Object[]> data = reservationRepository.getHourlyUsageStats();
+    public ResponseEntity<Map<String, Object>> getHourlyUsage() {
+        List<Reservation> allReservations = reservationRepository.findAll();
         
+        // 按小时分组统计
+        Map<Integer, Long> hourlyUsageMap = allReservations.stream()
+            .filter(r -> r.getStartTime() != null)
+            .collect(Collectors.groupingBy(
+                r -> r.getStartTime().getHour(),
+                Collectors.counting()
+            ));
+        
+        // 生成0-23小时的完整数据
         List<String> hours = new ArrayList<>();
         List<Long> counts = new ArrayList<>();
         
-        // 初始化24小时数据
-        for (int i = 0; i < 24; i++) {
-            hours.add(String.format("%02d:00", i));
-            counts.add(0L);
-        }
-        
-        // 填充实际数据
-        for (Object[] row : data) {
-            Integer hour = (Integer) row[0];
-            Long count = (Long) row[1];
-            counts.set(hour, count);
+        for (int hour = 0; hour < 24; hour++) {
+            hours.add(String.format("%02d:00", hour));
+            counts.add(hourlyUsageMap.getOrDefault(hour, 0L));
         }
         
         Map<String, Object> result = new HashMap<>();
         result.put("hours", hours);
         result.put("counts", counts);
         
-        return result;
+        return ResponseEntity.ok(result);
     }
 }

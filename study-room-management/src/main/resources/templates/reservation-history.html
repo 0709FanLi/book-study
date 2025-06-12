@@ -2,53 +2,50 @@
 <html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>预约历史 - 自习室管理系统</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        .status-badge {
-            font-size: 0.8rem;
+        .status-active { color: #0d6efd; }
+        .status-extended { color: #198754; }
+        .status-completed { color: #6c757d; }
+        .status-cancelled { color: #dc3545; }
+        
+        .extension-badge {
+            font-size: 0.75em;
+            padding: 0.25em 0.5em;
         }
-        .history-card {
-            border-left: 4px solid #6c757d;
-            margin-bottom: 10px;
-        }
-        .history-card.active {
-            border-left-color: #007bff;
-        }
-        .history-card.extended {
-            border-left-color: #28a745;
-        }
-        .history-card.completed {
-            border-left-color: #17a2b8;
-        }
-        .history-card.cancelled {
-            border-left-color: #dc3545;
-        }
+        
         .duration-info {
-            background-color: #f8f9fa;
-            border-radius: 6px;
-            padding: 8px;
-            margin-top: 8px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+        
+        .early-checkout {
+            color: #fd7e14;
+        }
+        
+        .table-hover tbody tr:hover {
+            background-color: rgba(0, 123, 255, 0.05);
         }
     </style>
 </head>
 <body>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="/">自习室管理系统</a>
+        <a class="navbar-brand" th:href="@{/}">自习室管理系统</a>
         <div class="collapse navbar-collapse">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <li class="nav-item"><a class="nav-link" href="/">首页</a></li>
-                <li class="nav-item"><a class="nav-link" href="/reservations">座位预约</a></li>
-                <li class="nav-item"><a class="nav-link active" href="/reservations/history">预约历史</a></li>
+                <li class="nav-item"><a class="nav-link" th:href="@{/}">首页</a></li>
+                <li class="nav-item"><a class="nav-link" th:href="@{/reservations}">座位预约</a></li>
+                <li class="nav-item"><a class="nav-link active" th:href="@{/reservations/history}">预约历史</a></li>
             </ul>
             <ul class="navbar-nav ms-auto">
                 <li class="nav-item">
-                    <span class="navbar-text text-white me-3">欢迎, <span sec:authentication="name"></span>!</span>
+                    <span class="navbar-text text-white me-3">欢迎, <span th:text="${#authentication.name}"></span>!</span>
                     <a class="btn btn-outline-light" onclick="document.getElementById('logout-form').submit();">退出登录</a>
-                    <form action="/logout" method="post" id="logout-form" style="display: none;"></form>
+                    <form th:action="@{/logout}" method="post" id="logout-form" style="display: none;"></form>
                 </li>
             </ul>
         </div>
@@ -56,159 +53,169 @@
 </nav>
 
 <div class="container mt-4">
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5><i class="fas fa-history"></i> 预约历史记录</h5>
-                    <small class="text-muted">查看您的所有预约记录，包括已完成、已取消和当前活跃的预约</small>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-history text-secondary me-2"></i>预约历史记录</h2>
+        <a href="/reservations" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>新建预约
+        </a>
+    </div>
+
+    <div th:if="${historyReservations == null or historyReservations.isEmpty()}" class="text-center py-5">
+        <i class="fas fa-calendar-times fa-4x text-muted mb-3"></i>
+        <h4 class="text-muted">暂无预约记录</h4>
+        <p class="text-muted">您还没有任何预约记录，<a th:href="@{/reservations}">立即预约</a>开始学习吧！</p>
+    </div>
+
+    <div th:if="${historyReservations != null and !historyReservations.isEmpty()}">
+        <!-- 统计信息 -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary">
+                            <i class="fas fa-calendar-check"></i>
+                            <span th:text="${#lists.size(historyReservations)}"></span>
+                        </h5>
+                        <p class="card-text">总预约次数</p>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <!-- 状态说明 -->
-                    <div class="row mb-4">
-                        <div class="col-12">
-                            <h6>状态说明：</h6>
-                            <span class="badge bg-primary me-2">ACTIVE - 活跃</span>
-                            <span class="badge bg-success me-2">EXTENDED - 已续约</span>
-                            <span class="badge bg-info me-2">COMPLETED - 已完成</span>
-                            <span class="badge bg-danger me-2">CANCELLED - 已取消</span>
-                        </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title text-success">
+                            <i class="fas fa-check-circle"></i>
+                            <span th:text="${#lists.size(#lists.select(historyReservations, status == 'COMPLETED'))}"></span>
+                        </h5>
+                        <p class="card-text">已完成</p>
                     </div>
-                    
-                    <!-- 预约记录列表 -->
-                    <div th:if="${historyReservations == null or historyReservations.isEmpty()}" class="text-center py-5">
-                        <i class="fas fa-calendar-times fa-4x text-muted mb-3"></i>
-                        <h5 class="text-muted">暂无预约记录</h5>
-                        <p class="text-muted">您还没有进行过任何预约</p>
-                        <a href="/reservations" class="btn btn-primary">
-                            <i class="fas fa-calendar-plus"></i> 立即预约
-                        </a>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title text-warning">
+                            <i class="fas fa-plus-circle"></i>
+                            <span th:text="${#aggregates.sum(historyReservations.![extensionCount])}"></span>
+                        </h5>
+                        <p class="card-text">总续约次数</p>
                     </div>
-                    
-                    <div th:if="${historyReservations != null and !historyReservations.isEmpty()}">
-                        <div th:each="res : ${historyReservations}" 
-                             class="history-card card mb-3"
-                             th:classappend="${res.status.toLowerCase()}">
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-8">
-                                        <div class="d-flex align-items-center mb-2">
-                                            <h6 class="card-title mb-0 me-3">
-                                                <i class="fas fa-chair"></i> 座位 <span th:text="${res.seat.seatNumber}"></span>
-                                            </h6>
-                                            <span th:switch="${res.status}" class="status-badge">
-                                                <span th:case="ACTIVE" class="badge bg-primary">活跃</span>
-                                                <span th:case="EXTENDED" class="badge bg-success">已续约</span>
-                                                <span th:case="COMPLETED" class="badge bg-info">已完成</span>
-                                                <span th:case="CANCELLED" class="badge bg-danger">已取消</span>
-                                            </span>
-                                        </div>
-                                        
-                                        <div class="mb-2">
-                                            <small class="text-muted">
-                                                <i class="fas fa-calendar-alt"></i> 预约时间：
-                                                <span th:text="${#temporals.format(res.startTime, 'yyyy-MM-dd HH:mm')}"></span>
-                                                至 <span th:text="${#temporals.format(res.endTime, 'yyyy-MM-dd HH:mm')}"></span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title text-danger">
+                            <i class="fas fa-times-circle"></i>
+                            <span th:text="${#lists.size(#lists.select(historyReservations, status == 'CANCELLED'))}"></span>
+                        </h5>
+                        <p class="card-text">已取消</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 预约记录表格 -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-list me-2"></i>详细记录</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th><i class="fas fa-chair me-1"></i>座位</th>
+                                <th><i class="fas fa-calendar me-1"></i>预约时间</th>
+                                <th><i class="fas fa-info-circle me-1"></i>状态</th>
+                                <th><i class="fas fa-plus-circle me-1"></i>续约</th>
+                                <th><i class="fas fa-clock me-1"></i>实际时长</th>
+                                <th><i class="fas fa-comment me-1"></i>备注</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="res : ${historyReservations}">
+                                <!-- 座位号 -->
+                                <td>
+                                    <strong th:text="${res.seat.seatNumber}"></strong>
+                                </td>
+                                
+                                <!-- 预约时间 -->
+                                <td>
+                                    <div th:text="${#temporals.format(res.startTime, 'yyyy-MM-dd')}"></div>
+                                    <small class="text-muted">
+                                        <span th:text="${#temporals.format(res.startTime, 'HH:mm')}"></span>
+                                        -
+                                        <span th:text="${#temporals.format(res.endTime, 'HH:mm')}"></span>
+                                    </small>
+                                    <div th:if="${res.actualEndTime != null}" class="mt-1">
+                                        <small class="early-checkout">
+                                            <i class="fas fa-sign-out-alt me-1"></i>
+                                            实际：<span th:text="${#temporals.format(res.actualEndTime, 'HH:mm')}"></span>
+                                        </small>
+                                    </div>
+                                </td>
+                                
+                                <!-- 状态 -->
+                                <td>
+                                    <span class="badge" 
+                                          th:classappend="${res.status == 'ACTIVE'} ? 'bg-primary' : 
+                                                         (${res.status == 'EXTENDED'} ? 'bg-success' : 
+                                                         (${res.status == 'COMPLETED'} ? 'bg-secondary' : 'bg-danger'))"
+                                          th:text="${res.statusDisplay}"></span>
+                                </td>
+                                
+                                <!-- 续约信息 -->
+                                <td>
+                                    <div th:if="${res.extensionCount > 0}">
+                                        <span class="badge bg-success extension-badge" th:text="${res.extensionCount} + '次'"></span>
+                                        <div th:if="${res.lastExtendedAt != null}" class="mt-1">
+                                            <small class="text-success">
+                                                <i class="fas fa-check-circle me-1"></i>
+                                                <span th:text="${#temporals.format(res.lastExtendedAt, 'MM-dd HH:mm')}"></span>
                                             </small>
                                         </div>
+                                    </div>
+                                    <span th:if="${res.extensionCount == 0}" class="badge bg-light text-dark extension-badge">0次</span>
+                                </td>
+                                
+                                <!-- 实际时长 -->
+                                <td>
+                                    <div th:if="${res.actualEndTime != null}" class="duration-info">
+                                        <!-- 计算实际使用时长 -->
+                                        <span th:with="duration=${T(java.time.Duration).between(res.startTime, res.actualEndTime)},
+                                                       hours=${duration.toHours()},
+                                                       minutes=${duration.toMinutes() % 60}">
+                                            <span th:if="${hours > 0}" th:text="${hours} + '小时'"></span>
+                                            <span th:if="${minutes > 0}" th:text="${minutes} + '分钟'"></span>
+                                        </span>
                                         
-                                        <div class="mb-2">
-                                            <small class="text-muted">
-                                                <i class="fas fa-clock"></i> 创建时间：
-                                                <span th:text="${#temporals.format(res.createdAt, 'yyyy-MM-dd HH:mm')}"></span>
-                                            </small>
-                                        </div>
-                                        
-                                        <!-- 备注信息 -->
-                                        <div th:if="${res.remarks != null and !res.remarks.isEmpty()}" class="mb-2">
-                                            <small class="text-muted">
-                                                <i class="fas fa-sticky-note"></i> 备注：<span th:text="${res.remarks}"></span>
-                                            </small>
-                                        </div>
-                                        
-                                        <!-- 续约信息 -->
-                                        <div th:if="${res.extensionCount > 0}" class="mb-2">
-                                            <small class="text-info">
-                                                <i class="fas fa-redo"></i> 续约次数：<span th:text="${res.extensionCount}"></span> 次
-                                                <span th:if="${res.lastExtendedAt != null}">
-                                                    （最后续约：<span th:text="${#temporals.format(res.lastExtendedAt, 'MM-dd HH:mm')}"></span>）
+                                        <!-- 提前退座提示 -->
+                                        <div th:if="${res.actualEndTime.isBefore(res.endTime)}" class="mt-1">
+                                            <small class="early-checkout">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                提前
+                                                <span th:with="earlyDuration=${T(java.time.Duration).between(res.actualEndTime, res.endTime)},
+                                                               earlyMinutes=${earlyDuration.toMinutes()}">
+                                                    <span th:if="${earlyMinutes >= 60}" th:text="${earlyMinutes / 60} + '小时'"></span>
+                                                    <span th:if="${earlyMinutes % 60 > 0}" th:text="${earlyMinutes % 60} + '分钟'"></span>
                                                 </span>
-                                            </small>
-                                        </div>
-                                        
-                                        <!-- 实际使用时长信息 -->
-                                        <div class="duration-info">
-                                            <div th:switch="${res.status}">
-                                                <!-- 已完成的预约显示实际使用时长 -->
-                                                <div th:case="COMPLETED">
-                                                    <small class="text-success">
-                                                        <i class="fas fa-check-circle"></i> 
-                                                        实际使用时长：
-                                                        <span th:with="duration=${T(java.time.Duration).between(res.startTime, res.actualEndTime)}"
-                                                              th:text="${duration.toHours()} + '小时' + ${duration.toMinutesPart()} + '分钟'"></span>
-                                                        <br>
-                                                        <i class="fas fa-sign-out-alt"></i>
-                                                        退座时间：<span th:text="${#temporals.format(res.actualEndTime, 'yyyy-MM-dd HH:mm')}"></span>
-                                                    </small>
-                                                </div>
-                                                
-                                                <!-- 活跃预约显示计划时长 -->
-                                                <div th:case="ACTIVE">
-                                                    <small class="text-primary">
-                                                        <i class="fas fa-clock"></i> 
-                                                        计划使用时长：
-                                                        <span th:with="duration=${T(java.time.Duration).between(res.startTime, res.endTime)}"
-                                                              th:text="${duration.toHours()} + '小时' + ${duration.toMinutesPart()} + '分钟'"></span>
-                                                    </small>
-                                                </div>
-                                                
-                                                <!-- 已续约预约显示计划时长 -->
-                                                <div th:case="EXTENDED">
-                                                    <small class="text-success">
-                                                        <i class="fas fa-plus-circle"></i> 
-                                                        总计划时长：
-                                                        <span th:with="duration=${T(java.time.Duration).between(res.startTime, res.endTime)}"
-                                                              th:text="${duration.toHours()} + '小时' + ${duration.toMinutesPart()} + '分钟'"></span>
-                                                    </small>
-                                                </div>
-                                                
-                                                <!-- 已取消预约 -->
-                                                <div th:case="CANCELLED">
-                                                    <small class="text-danger">
-                                                        <i class="fas fa-times-circle"></i> 
-                                                        预约已取消，未使用
-                                                    </small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="col-md-4 text-end">
-                                        <!-- 操作按钮（仅对活跃预约显示） -->
-                                        <div th:if="${res.status == 'ACTIVE' or res.status == 'EXTENDED'}">
-                                            <a href="/reservations" class="btn btn-outline-primary btn-sm mb-1">
-                                                <i class="fas fa-edit"></i> 管理预约
-                                            </a>
-                                        </div>
-                                        
-                                        <!-- 预约状态时间戳 -->
-                                        <div class="mt-2">
-                                            <small class="text-muted">
-                                                编号：#<span th:text="${res.id}"></span>
+                                                退座
                                             </small>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- 返回按钮 -->
-                    <div class="text-center mt-4">
-                        <a href="/reservations" class="btn btn-primary">
-                            <i class="fas fa-arrow-left"></i> 返回预约管理
-                        </a>
-                    </div>
+                                    <span th:if="${res.actualEndTime == null and res.status == 'CANCELLED'}" class="text-muted">-</span>
+                                    <span th:if="${res.actualEndTime == null and res.status != 'CANCELLED'}" class="text-primary">进行中</span>
+                                </td>
+                                
+                                <!-- 备注 -->
+                                <td>
+                                    <span th:if="${res.remarks != null and !res.remarks.isEmpty()}" th:text="${res.remarks}"></span>
+                                    <span th:if="${res.remarks == null or res.remarks.isEmpty()}" class="text-muted">-</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

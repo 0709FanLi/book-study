@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>座位预约 - 自习室管理系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .seat-map-container {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .seat-area {
+            margin-bottom: 30px;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .seat-area-title {
+            text-align: center;
+            margin-bottom: 15px;
+            font-weight: bold;
+            color: #495057;
+        }
+        
+        .seat-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 8px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .seat {
+            width: 50px;
+            height: 45px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            user-select: none;
+        }
+        
+        .seat.available {
+            background: linear-gradient(145deg, #28a745, #20c997);
+            color: white;
+            border: 2px solid #1e7e34;
+        }
+        
+        .seat.available:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
+        }
+        
+        .seat.occupied {
+            background: linear-gradient(145deg, #6c757d, #495057);
+            color: white;
+            border: 2px solid #343a40;
+            cursor: not-allowed;
+        }
+        
+        .seat.selected {
+            background: linear-gradient(145deg, #007bff, #0056b3);
+            color: white;
+            border: 2px solid #004085;
+            transform: scale(1.1);
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4);
+        }
+        
+        .seat-tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 5px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+        
+        .seat:hover .seat-tooltip {
+            opacity: 1;
+            visibility: visible;
+            bottom: 110%;
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 10px;
+            background: white;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+        
+        .reservation-form {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .current-reservations {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .reservation-card {
+            border-left: 4px solid #007bff;
+            margin-bottom: 15px;
+            transition: transform 0.2s ease;
+        }
+        
+        .reservation-card:hover {
+            transform: translateX(5px);
+        }
+        
+        .btn-extend {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            border: none;
+        }
+        
+        .btn-checkout {
+            background: linear-gradient(45deg, #dc3545, #e83e8c);
+            border: none;
+        }
+        
+        .stats-row {
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #6c757d;
+        }
+        
+        @media (max-width: 768px) {
+            .seat-grid {
+                grid-template-columns: repeat(5, 1fr);
+                max-width: 300px;
+            }
+            .seat {
+                width: 45px;
+                height: 40px;
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" th:href="@{/}">自习室管理系统</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item"><a class="nav-link" th:href="@{/}">首页</a></li>
+                <li class="nav-item" sec:authorize="hasRole('USER')"><a class="nav-link active" th:href="@{/reservations}">座位预约</a></li>
+                <li class="nav-item" sec:authorize="hasRole('ADMIN')"><a class="nav-link" th:href="@{/admin/dashboard}">管理后台</a></li>
+                <li class="nav-item" sec:authorize="isAuthenticated()"><a class="nav-link" th:href="@{/profile}">个人中心</a></li>
+            </ul>
+            <ul class="navbar-nav ms-auto">
+                 <li class="nav-item" sec:authorize="isAuthenticated()">
+                     <span class="navbar-text text-white me-3">欢迎, <span sec:authentication="name"></span>!</span>
+                     <a class="btn btn-outline-light" onclick="document.getElementById('logout-form').submit();">退出登录</a>
+                     <form th:action="@{/logout}" method="post" id="logout-form" style="display: none;"></form>
+                 </li>
+                 <li class="nav-item" sec:authorize="!isAuthenticated()">
+                     <a class="btn btn-outline-light me-2" th:href="@{/login}">登录</a>
+                     <a class="btn btn-primary" th:href="@{/register}">注册</a>
+                 </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <!-- 成功/错误消息 -->
+    <div th:if="${param.success}" class="alert alert-success alert-dismissible fade show" role="alert">
+        操作成功！
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    
+    <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <span th:text="${error}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- 座位分布图 -->
+    <div class="seat-map-container">
+        <h4 class="text-center mb-4">
+            <i class="fas fa-map me-2"></i>座位分布图
+            <small class="text-muted d-block mt-2">双击绿色座位进行预约</small>
+        </h4>
+        
+        <!-- 统计信息 -->
+        <div class="row stats-row">
+            <div class="col-3">
+                <div class="stat-card">
+                    <div class="stat-number text-success" id="available-count">0</div>
+                    <div class="stat-label">可用座位</div>
+                </div>
+            </div>
+            <div class="col-3">
+                <div class="stat-card">
+                    <div class="stat-number text-danger" id="occupied-count">0</div>
+                    <div class="stat-label">已占用</div>
+                </div>
+            </div>
+            <div class="col-3">
+                <div class="stat-card">
+                    <div class="stat-number text-primary" id="total-count">0</div>
+                    <div class="stat-label">总座位</div>
+                </div>
+            </div>
+            <div class="col-3">
+                <div class="stat-card">
+                    <div class="stat-number text-info" id="usage-rate">0%</div>
+                    <div class="stat-label">使用率</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- A区座位 -->
+        <div class="seat-area">
+            <div class="seat-area-title">A区 - 安静学习区</div>
+            <div class="seat-grid" id="area-A"></div>
+        </div>
+        
+        <!-- B区座位 -->
+        <div class="seat-area">
+            <div class="seat-area-title">B区 - 讨论学习区</div>
+            <div class="seat-grid" id="area-B"></div>
+        </div>
+        
+        <!-- 图例 -->
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(145deg, #28a745, #20c997);"></div>
+                <span>可预约</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(145deg, #6c757d, #495057);"></div>
+                <span>已占用</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(145deg, #007bff, #0056b3);"></div>
+                <span>选中座位</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 左侧：预约表单 -->
+        <div class="col-md-6">
+            <div class="reservation-form">
+                <h5><i class="fas fa-plus-circle me-2"></i>预约座位</h5>
+                <form id="reservation-form" th:action="@{/reservations}" method="post">
+                    <input type="hidden" id="selected-seat-id" name="seatId">
+                    <div class="mb-3">
+                        <label class="form-label">选中座位</label>
+                        <input type="text" id="selected-seat-display" class="form-control" readonly placeholder="请双击选择座位">
+                    </div>
+                    <div class="mb-3">
+                        <label for="startTime" class="form-label">开始时间</label>
+                        <input type="datetime-local" id="startTime" name="startTime" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="endTime" class="form-label">结束时间</label>
+                        <input type="datetime-local" id="endTime" name="endTime" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="remarks" class="form-label">备注（可选）</label>
+                        <input type="text" id="remarks" name="remarks" class="form-control" placeholder="如：准备期末考试">
+                    </div>
+                    <button type="submit" class="btn btn-primary" disabled id="reserve-btn">
+                        <i class="fas fa-calendar-plus me-2"></i>确认预约
+                    </button>
+                </form>
+            </div>
+            
+            <!-- 投诉建议表单 -->
+            <div class="reservation-form mt-4">
+                <h5><i class="fas fa-comment-dots me-2"></i>投诉建议</h5>
+                <form th:action="@{/complaints}" method="post">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">标题</label>
+                        <input type="text" id="title" name="title" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="content" class="form-label">内容</label>
+                        <textarea id="content" name="content" class="form-control" rows="3" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-paper-plane me-2"></i>提交
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- 右侧：我的当前预约 -->
+        <div class="col-md-6">
+            <div class="current-reservations">
+                <h5><i class="fas fa-calendar-day me-2"></i>我的当前预约</h5>
+                <div id="my-reservations-container">
+                    <div class="text-center py-4">
+                        <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
+                        <p class="text-muted">加载中...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 续约模态框 -->
+<div class="modal fade" id="extendModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus-circle text-success me-2"></i>续约确认
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="extend-details"></div>
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    续约后的结束时间将自动延长，续约次数将增加1次。
+                </div>
+                <form id="extendForm" method="post">
+                    <div class="mb-3">
+                        <label class="form-label">选择续约时长：</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="hours" value="1" id="extend1h" checked>
+                            <label class="form-check-label" for="extend1h">1小时</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="hours" value="2" id="extend2h">
+                            <label class="form-check-label" for="extend2h">2小时</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-success" onclick="confirmExtend()">确认续约</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 退座模态框 -->
+<div class="modal fade" id="checkoutModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-sign-out-alt text-warning me-2"></i>退座确认
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="checkout-details"></div>
+                <div class="alert alert-warning mt-3">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    确认退座后将无法撤销，座位将立即释放给其他用户。
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-warning" onclick="confirmCheckout()">确认退座</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    let selectedReservationId = null;
+    let selectedSeatNumber = null;
+    let selectedSeat = null;
+    let seatData = [];
+
+    // 页面加载完成后初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeDefaultTimes();
+        loadSeatStatus();
+        loadMyReservations();
+        
+        // 每30秒刷新一次座位状态
+        setInterval(function() {
+            loadSeatStatus();
+            loadMyReservations();
+        }, 30000);
+    });
+
+    // 设置默认时间
+    function initializeDefaultTimes() {
+        const now = new Date();
+        const startTime = new Date(now.getTime() + 60 * 60 * 1000); // 1小时后
+        const endTime = new Date(startTime.getTime() + 2 * 60 * 60 * 1000); // 再2小时后
+        
+        const startTimeEl = document.getElementById('startTime');
+        const endTimeEl = document.getElementById('endTime');
+        if (startTimeEl) startTimeEl.value = startTime.toISOString().slice(0, 16);
+        if (endTimeEl) endTimeEl.value = endTime.toISOString().slice(0, 16);
+    }
+
+    // 加载座位状态
+    async function loadSeatStatus() {
+        try {
+            const response = await fetch('/api/seats/status');
+            if (response.ok) {
+                seatData = await response.json();
+                renderSeatMap();
+                updateStats();
+            } else {
+                console.error('Failed to load seat status');
+                showDefaultSeatMap();
+            }
+        } catch (error) {
+            console.error('Error loading seat status:', error);
+            showDefaultSeatMap();
+        }
+    }
+
+    // 显示默认座位地图（当API失败时）
+    function showDefaultSeatMap() {
+        const areaA = document.getElementById('area-A');
+        const areaB = document.getElementById('area-B');
+        
+        // 创建一些示例座位
+        areaA.innerHTML = '';
+        areaB.innerHTML = '';
+        
+        // A区示例座位
+        for (let i = 1; i <= 20; i++) {
+            const seatDiv = document.createElement('div');
+            seatDiv.className = 'seat available';
+            seatDiv.textContent = 'A' + i.toString().padStart(2, '0');
+            areaA.appendChild(seatDiv);
+        }
+        
+        // B区示例座位
+        for (let i = 1; i <= 20; i++) {
+            const seatDiv = document.createElement('div');
+            seatDiv.className = 'seat available';
+            seatDiv.textContent = 'B' + i.toString().padStart(2, '0');
+            areaB.appendChild(seatDiv);
+        }
+    }
+
+    // 渲染座位地图
+    function renderSeatMap() {
+        const areaA = document.getElementById('area-A');
+        const areaB = document.getElementById('area-B');
+        
+        areaA.innerHTML = '';
+        areaB.innerHTML = '';
+        
+        // 按区域和位置排序
+        const sortedSeats = seatData.sort((a, b) => {
+            if (a.seatArea !== b.seatArea) {
+                return a.seatArea.localeCompare(b.seatArea);
+            }
+            if (a.seatRow !== b.seatRow) {
+                return a.seatRow - b.seatRow;
+            }
+            return a.seatCol - b.seatCol;
+        });
+        
+        sortedSeats.forEach(seat => {
+            const seatElement = createSeatElement(seat);
+            if (seat.seatArea === 'A') {
+                areaA.appendChild(seatElement);
+            } else if (seat.seatArea === 'B') {
+                areaB.appendChild(seatElement);
+            }
+        });
+    }
+
+    // 创建座位元素
+    function createSeatElement(seat) {
+        const seatDiv = document.createElement('div');
+        seatDiv.className = 'seat ' + (seat.isAvailable ? 'available' : 'occupied');
+        seatDiv.textContent = seat.seatNumber;
+        seatDiv.dataset.seatId = seat.id;
+        seatDiv.dataset.seatNumber = seat.seatNumber;
+        
+        // 添加提示信息
+        const tooltip = document.createElement('div');
+        tooltip.className = 'seat-tooltip';
+        if (seat.isAvailable) {
+            tooltip.textContent = '可预约';
+        } else {
+            tooltip.textContent = `已占用至${seat.reservationEndTime}`;
+        }
+        seatDiv.appendChild(tooltip);
+        
+        // 双击事件（仅可用座位）
+        if (seat.isAvailable) {
+            seatDiv.addEventListener('dblclick', function() {
+                selectSeat(seat);
+            });
+        }
+        
+        return seatDiv;
+    }
+
+    // 选择座位
+    function selectSeat(seat) {
+        // 清除之前选中的座位
+        document.querySelectorAll('.seat.selected').forEach(s => {
+            s.classList.remove('selected');
+            s.classList.add('available');
+        });
+        
+        // 选中当前座位
+        const seatElement = document.querySelector(`[data-seat-id="${seat.id}"]`);
+        seatElement.classList.remove('available');
+        seatElement.classList.add('selected');
+        
+        selectedSeat = seat;
+        document.getElementById('selected-seat-id').value = seat.id;
+        document.getElementById('selected-seat-display').value = `${seat.seatNumber} (${seat.seatArea}区)`;
+        document.getElementById('reserve-btn').disabled = false;
+    }
+
+    // 更新统计信息
+    function updateStats() {
+        const available = seatData.filter(s => s.isAvailable).length;
+        const occupied = seatData.filter(s => !s.isAvailable).length;
+        const total = seatData.length;
+        const usageRate = total > 0 ? Math.round((occupied / total) * 100) : 0;
+        
+        document.getElementById('available-count').textContent = available;
+        document.getElementById('occupied-count').textContent = occupied;
+        document.getElementById('total-count').textContent = total;
+        document.getElementById('usage-rate').textContent = usageRate + '%';
+    }
+
+    // 加载我的预约
+    async function loadMyReservations() {
+        const container = document.getElementById('my-reservations-container');
+        try {
+            // 这里应该调用API获取预约数据，暂时显示静态内容
+            container.innerHTML = `
+                <div th:if="reservations == null or reservations.isEmpty()" class="text-center py-4">
+                    <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">您当前没有有效的预约</p>
+                </div>
+                <div th:if="reservations != null and !reservations.isEmpty()">
+                    <div th:each="res : reservations" class="card reservation-card mb-3">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">
+                                <i class="fas fa-chair me-2"></i>座位 <span th:text="seat.seatNumber"></span>
+                                <span class="badge ms-2 bg-primary" th:text="status"></span>
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mt-3 d-flex gap-2 flex-wrap">
+                                <button class="btn btn-extend btn-sm text-white extend-btn">
+                                    <i class="fas fa-plus-circle me-1"></i>续约
+                                </button>
+                                <button class="btn btn-checkout btn-sm text-white checkout-btn">
+                                    <i class="fas fa-sign-out-alt me-1"></i>提前退座
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } catch (error) {
+            console.error('Error loading reservations:', error);
+            container.innerHTML = `
+                <div class="text-center py-4">
+                    <i class="fas fa-exclamation-triangle fa-2x text-warning mb-3"></i>
+                    <p class="text-muted">加载预约信息失败</p>
+                </div>
+            `;
+        }
+    }
+
+    function showExtendModal(reservationId, seatNumber) {
+        selectedReservationId = reservationId;
+        selectedSeatNumber = seatNumber;
+        
+        document.getElementById('extend-details').innerHTML = `
+            <div class="d-flex justify-content-between">
+                <span>座位：</span>
+                <strong>${seatNumber}</strong>
+            </div>
+        `;
+        
+        new bootstrap.Modal(document.getElementById('extendModal')).show();
+    }
+
+    function showCheckoutModal(reservationId, seatNumber) {
+        selectedReservationId = reservationId;
+        selectedSeatNumber = seatNumber;
+        
+        const now = new Date();
+        const timeStr = now.getHours().toString().padStart(2, '0') + ':' + 
+                       now.getMinutes().toString().padStart(2, '0');
+        
+        document.getElementById('checkout-details').innerHTML = `
+            <div class="d-flex justify-content-between">
+                <span>座位：</span>
+                <strong>${seatNumber}</strong>
+            </div>
+            <div class="d-flex justify-content-between">
+                <span>退座时间：</span>
+                <strong class="text-warning">${timeStr}</strong>
+            </div>
+        `;
+        
+        new bootstrap.Modal(document.getElementById('checkoutModal')).show();
+    }
+
+    function confirmExtend() {
+        const hours = document.querySelector('input[name="hours"]:checked').value;
+        const form = document.getElementById('extendForm');
+        form.action = `/reservations/extend/${selectedReservationId}`;
+        
+        // 创建隐藏的hours输入
+        const hoursInput = document.createElement('input');
+        hoursInput.type = 'hidden';
+        hoursInput.name = 'hours';
+        hoursInput.value = hours;
+        form.appendChild(hoursInput);
+        
+        form.submit();
+    }
+
+    function confirmCheckout() {
+        const form = document.createElement('form');
+        form.method = 'post';
+        form.action = `/reservations/checkout/${selectedReservationId}`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+</script>
+</body>
+</html> 

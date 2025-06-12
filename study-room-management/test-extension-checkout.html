@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>续约与退座功能演示 - 自习室管理系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .reservation-card {
+            border-left: 4px solid #007bff;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+        .ending-soon {
+            border-left-color: #ffc107 !important;
+            animation: pulse 2s infinite;
+        }
+        .extended {
+            border-left-color: #28a745 !important;
+        }
+        .completed {
+            border-left-color: #6c757d !important;
+            opacity: 0.8;
+        }
+        .cancelled {
+            border-left-color: #dc3545 !important;
+            opacity: 0.8;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
+        }
+        
+        .countdown {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        
+        .btn-extend {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            border: none;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-extend:hover {
+            background: linear-gradient(45deg, #1e7e34, #17a2b8);
+            transform: translateY(-2px);
+        }
+        
+        .btn-checkout {
+            background: linear-gradient(45deg, #dc3545, #e83e8c);
+            border: none;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-checkout:hover {
+            background: linear-gradient(45deg, #c82333, #d91a72);
+            transform: translateY(-2px);
+        }
+        
+        .status-badge {
+            font-size: 0.8rem;
+        }
+        
+        .demo-banner {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        
+        .feature-demo {
+            border: 2px dashed #007bff;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            background: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <!-- 演示横幅 -->
+    <div class="demo-banner text-center">
+        <div class="container">
+            <h1><i class="fas fa-calendar-check me-3"></i>续约与退座功能演示</h1>
+            <p class="lead">完整展示5.3节续约与退座功能的用户界面和交互流程</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- 功能概述 -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="feature-demo">
+                    <h3><i class="fas fa-info-circle text-primary me-2"></i>功能特色</h3>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-clock text-success me-2"></i>智能续约</h5>
+                            <ul>
+                                <li>预约结束前30分钟内可申请续约</li>
+                                <li>每个预约最多续约3次</li>
+                                <li>每次续约1-2小时</li>
+                                <li>自动冲突检测</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-sign-out-alt text-warning me-2"></i>提前退座</h5>
+                            <ul>
+                                <li>预约时间内随时可退座</li>
+                                <li>记录实际使用时长</li>
+                                <li>立即释放座位资源</li>
+                                <li>为数据分析提供支持</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 当前活跃预约 -->
+        <div class="row">
+            <div class="col-12">
+                <h3><i class="fas fa-calendar-day text-primary me-2"></i>我的当前预约</h3>
+            </div>
+        </div>
+
+        <!-- 可续约的预约示例 -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card reservation-card ending-soon">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chair me-2"></i>座位 A01
+                            <span class="badge bg-warning status-badge ms-2">即将结束</span>
+                        </h5>
+                        <span class="countdown text-warning">剩余 25 分钟</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-6">
+                                <small class="text-muted">开始时间</small>
+                                <div>今日 08:00</div>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">结束时间</small>
+                                <div>今日 10:00</div>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <small class="text-muted">续约次数：0/3</small>
+                            <div class="mt-2">
+                                <small class="text-muted">备注：</small>准备期末考试
+                            </div>
+                        </div>
+                        <div class="mt-3 d-flex gap-2">
+                            <button class="btn btn-extend btn-sm text-white" onclick="extendReservation(1)">
+                                <i class="fas fa-plus-circle me-1"></i>续约 1小时
+                            </button>
+                            <button class="btn btn-extend btn-sm text-white" onclick="extendReservation(2)">
+                                <i class="fas fa-plus-circle me-1"></i>续约 2小时
+                            </button>
+                            <button class="btn btn-checkout btn-sm text-white" onclick="checkoutReservation(1)">
+                                <i class="fas fa-sign-out-alt me-1"></i>提前退座
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card reservation-card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chair me-2"></i>座位 B03
+                            <span class="badge bg-primary status-badge ms-2">正常</span>
+                        </h5>
+                        <span class="countdown text-primary">剩余 3 小时 20 分钟</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-6">
+                                <small class="text-muted">开始时间</small>
+                                <div>今日 14:00</div>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">结束时间</small>
+                                <div>今日 17:00</div>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <small class="text-muted">续约次数：0/3</small>
+                            <div class="mt-2">
+                                <small class="text-muted">备注：</small>软件工程项目
+                            </div>
+                        </div>
+                        <div class="mt-3 d-flex gap-2">
+                            <button class="btn btn-secondary btn-sm" disabled>
+                                <i class="fas fa-clock me-1"></i>还不可续约
+                            </button>
+                            <button class="btn btn-checkout btn-sm text-white" onclick="checkoutReservation(2)">
+                                <i class="fas fa-sign-out-alt me-1"></i>提前退座
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 已续约的预约示例 -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card reservation-card extended">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chair me-2"></i>座位 A04
+                            <span class="badge bg-success status-badge ms-2">已续约</span>
+                        </h5>
+                        <span class="countdown text-success">剩余 1 小时 15 分钟</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-6">
+                                <small class="text-muted">开始时间</small>
+                                <div>昨日 08:00</div>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">结束时间</small>
+                                <div class="text-success">昨日 12:00</div>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <small class="text-muted">续约次数：2/3</small>
+                            <div class="mt-1">
+                                <small class="text-success">
+                                    <i class="fas fa-check-circle me-1"></i>
+                                    最后续约：昨日 11:30 (+2小时)
+                                </small>
+                            </div>
+                            <div class="mt-2">
+                                <small class="text-muted">备注：</small>毕业论文写作
+                            </div>
+                        </div>
+                        <div class="mt-3 d-flex gap-2">
+                            <button class="btn btn-extend btn-sm text-white" onclick="extendReservation(3)">
+                                <i class="fas fa-plus-circle me-1"></i>最后1次续约
+                            </button>
+                            <button class="btn btn-checkout btn-sm text-white" onclick="checkoutReservation(3)">
+                                <i class="fas fa-sign-out-alt me-1"></i>提前退座
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 预约历史示例 -->
+        <div class="row">
+            <div class="col-12">
+                <h3><i class="fas fa-history text-secondary me-2"></i>预约历史记录</h3>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>座位</th>
+                                <th>日期时间</th>
+                                <th>状态</th>
+                                <th>续约次数</th>
+                                <th>实际时长</th>
+                                <th>备注</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><i class="fas fa-chair text-primary me-1"></i>A01</td>
+                                <td>
+                                    <div>2025-06-10 08:00-12:00</div>
+                                    <small class="text-muted">实际：08:00-11:45</small>
+                                </td>
+                                <td><span class="badge bg-secondary">已完成</span></td>
+                                <td>
+                                    <span class="badge bg-success">1次</span>
+                                    <small class="text-muted d-block">11:30 +1小时</small>
+                                </td>
+                                <td>
+                                    <strong>3小时45分</strong>
+                                    <small class="text-muted d-block">提前15分钟退座</small>
+                                </td>
+                                <td>计算机网络实验</td>
+                            </tr>
+                            <tr>
+                                <td><i class="fas fa-chair text-primary me-1"></i>A02</td>
+                                <td>
+                                    <div>2025-06-10 14:00-18:00</div>
+                                    <small class="text-muted">实际：14:00-17:30</small>
+                                </td>
+                                <td><span class="badge bg-secondary">已完成</span></td>
+                                <td>
+                                    <span class="badge bg-light text-dark">0次</span>
+                                </td>
+                                <td>
+                                    <strong>3小时30分</strong>
+                                    <small class="text-muted d-block">提前30分钟退座</small>
+                                </td>
+                                <td>数据结构课程设计</td>
+                            </tr>
+                            <tr>
+                                <td><i class="fas fa-chair text-primary me-1"></i>B05</td>
+                                <td>2025-06-09 09:00-11:00</td>
+                                <td><span class="badge bg-danger">已取消</span></td>
+                                <td><span class="badge bg-light text-dark">0次</span></td>
+                                <td>-</td>
+                                <td>临时有事</td>
+                            </tr>
+                            <tr>
+                                <td><i class="fas fa-chair text-primary me-1"></i>C02</td>
+                                <td>
+                                    <div>2025-06-09 15:00-17:00</div>
+                                    <small class="text-muted">实际：15:00-16:50</small>
+                                </td>
+                                <td><span class="badge bg-secondary">已完成</span></td>
+                                <td>
+                                    <span class="badge bg-success">2次</span>
+                                    <small class="text-muted d-block">16:30 +1小时</small>
+                                </td>
+                                <td>
+                                    <strong>1小时50分</strong>
+                                    <small class="text-muted d-block">提前10分钟退座</small>
+                                </td>
+                                <td>操作系统复习</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 操作演示区域 -->
+        <div class="feature-demo mt-4">
+            <h4><i class="fas fa-play-circle text-primary me-2"></i>功能演示</h4>
+            <p>点击上方的"续约"或"提前退座"按钮可以查看模拟的操作效果。</p>
+            <div id="demo-output" class="mt-3"></div>
+        </div>
+    </div>
+
+    <!-- 模态框 - 续约确认 -->
+    <div class="modal fade" id="extendModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-plus-circle text-success me-2"></i>续约确认
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="extend-details"></div>
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        续约后的结束时间将自动延长，续约次数将增加1次。
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-success" onclick="confirmExtend()">确认续约</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框 - 退座确认 -->
+    <div class="modal fade" id="checkoutModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-sign-out-alt text-warning me-2"></i>退座确认
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="checkout-details"></div>
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        确认退座后将无法撤销，座位将立即释放给其他用户。
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-warning" onclick="confirmCheckout()">确认退座</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let selectedReservation = null;
+        let selectedHours = 0;
+
+        function extendReservation(reservationId, hours = 1) {
+            selectedReservation = reservationId;
+            selectedHours = hours;
+            
+            const reservations = {
+                1: { seat: 'A01', endTime: '10:00', extensionCount: 0 },
+                2: { seat: 'B03', endTime: '17:00', extensionCount: 0 },
+                3: { seat: 'A04', endTime: '12:00', extensionCount: 2 }
+            };
+            
+            const reservation = reservations[reservationId];
+            const newEndTime = calculateNewEndTime(reservation.endTime, hours);
+            
+            document.getElementById('extend-details').innerHTML = `
+                <div class="d-flex justify-content-between">
+                    <span>座位：</span>
+                    <strong>${reservation.seat}</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>续约时长：</span>
+                    <strong>${hours} 小时</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>当前结束时间：</span>
+                    <span>${reservation.endTime}</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>续约后结束时间：</span>
+                    <strong class="text-success">${newEndTime}</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>续约次数：</span>
+                    <span>${reservation.extensionCount}/3 → <strong class="text-success">${reservation.extensionCount + 1}/3</strong></span>
+                </div>
+            `;
+            
+            new bootstrap.Modal(document.getElementById('extendModal')).show();
+        }
+
+        function checkoutReservation(reservationId) {
+            selectedReservation = reservationId;
+            
+            const reservations = {
+                1: { seat: 'A01', startTime: '08:00', endTime: '10:00' },
+                2: { seat: 'B03', startTime: '14:00', endTime: '17:00' },
+                3: { seat: 'A04', startTime: '08:00', endTime: '12:00' }
+            };
+            
+            const reservation = reservations[reservationId];
+            const now = new Date();
+            const currentTime = now.toTimeString().slice(0, 5);
+            const usedTime = calculateUsedTime(reservation.startTime, currentTime);
+            
+            document.getElementById('checkout-details').innerHTML = `
+                <div class="d-flex justify-content-between">
+                    <span>座位：</span>
+                    <strong>${reservation.seat}</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>预约时间：</span>
+                    <span>${reservation.startTime} - ${reservation.endTime}</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>当前时间：</span>
+                    <strong>${currentTime}</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>已使用时长：</span>
+                    <strong class="text-primary">${usedTime}</strong>
+                </div>
+            `;
+            
+            new bootstrap.Modal(document.getElementById('checkoutModal')).show();
+        }
+
+        function confirmExtend() {
+            bootstrap.Modal.getInstance(document.getElementById('extendModal')).hide();
+            
+            document.getElementById('demo-output').innerHTML = `
+                <div class="alert alert-success alert-dismissible fade show">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>续约成功！</strong> 预约已延长 ${selectedHours} 小时，续约次数增加1次。
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            // 模拟更新界面
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+        }
+
+        function confirmCheckout() {
+            bootstrap.Modal.getInstance(document.getElementById('checkoutModal')).hide();
+            
+            document.getElementById('demo-output').innerHTML = `
+                <div class="alert alert-warning alert-dismissible fade show">
+                    <i class="fas fa-sign-out-alt me-2"></i>
+                    <strong>退座成功！</strong> 座位已释放，实际使用时长已记录。
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            // 模拟更新界面
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+        }
+
+        function calculateNewEndTime(currentEndTime, hours) {
+            const [h, m] = currentEndTime.split(':').map(Number);
+            const newHour = (h + hours) % 24;
+            return `${newHour.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+        }
+
+        function calculateUsedTime(startTime, currentTime) {
+            const [sh, sm] = startTime.split(':').map(Number);
+            const [ch, cm] = currentTime.split(':').map(Number);
+            
+            const startMinutes = sh * 60 + sm;
+            const currentMinutes = ch * 60 + cm;
+            const usedMinutes = currentMinutes - startMinutes;
+            
+            const hours = Math.floor(usedMinutes / 60);
+            const minutes = usedMinutes % 60;
+            
+            return `${hours}小时${minutes}分钟`;
+        }
+
+        // 模拟实时倒计时
+        function updateCountdowns() {
+            const countdowns = document.querySelectorAll('.countdown');
+            countdowns.forEach(countdown => {
+                // 这里可以添加真实的倒计时逻辑
+            });
+        }
+
+        // 每秒更新倒计时
+        setInterval(updateCountdowns, 1000);
+        
+        // 页面加载完成提示
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                document.getElementById('demo-output').innerHTML = `
+                    <div class="alert alert-info alert-dismissible fade show">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        <strong>演示说明：</strong> 这是续约与退座功能的完整界面演示。点击上方的功能按钮可以体验完整的操作流程。
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `;
+            }, 1000);
+        });
+    </script>
+</body>
+</html> 

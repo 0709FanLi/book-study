@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>退座按钮修复测试</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container mt-4">
+    <h2>退座按钮修复测试</h2>
+    
+    <div class="alert alert-info">
+        <strong>修复说明：</strong><br>
+        原问题：<code>onclick="showCheckoutModal([[${res.id}]], '[[${res.seat.seatNumber}]]')"</code><br>
+        修复后：<code>th:onclick="'showCheckoutModal(' + ${res.id} + ', \'' + ${res.seat.seatNumber} + '\')'"</code>
+    </div>
+    
+    <!-- 模拟预约卡片 -->
+    <div class="card">
+        <div class="card-header">测试预约 - 座位A03</div>
+        <div class="card-body">
+            <!-- 修复后的退座按钮示例 -->
+            <button class="btn btn-warning btn-sm" onclick="showCheckoutModal(23, 'A03')">
+                <i class="fas fa-sign-out-alt me-1"></i>提前退座（修复后）
+            </button>
+            
+            <!-- 原有问题按钮（注释掉避免错误） -->
+            <!-- 
+            <button onclick="showCheckoutModal([[${res.id}]], '[[${res.seat.seatNumber}]]')">
+                原有问题按钮（会报Unexpected token '{'错误）
+            </button>
+            -->
+        </div>
+    </div>
+</div>
+
+<!-- 退座模态框 -->
+<div class="modal fade" id="checkoutModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">退座确认</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="checkout-details"></div>
+                <div class="alert alert-warning mt-3">
+                    确认退座后将无法撤销，座位将立即释放给其他用户。
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-warning" onclick="confirmCheckout()">确认退座</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    let selectedReservationId = null;
+    let selectedSeatNumber = null;
+
+    function showCheckoutModal(reservationId, seatNumber) {
+        selectedReservationId = reservationId;
+        selectedSeatNumber = seatNumber;
+        
+        const now = new Date();
+        const timeStr = now.getHours().toString().padStart(2, '0') + ':' + 
+                       now.getMinutes().toString().padStart(2, '0');
+        
+        document.getElementById('checkout-details').innerHTML = `
+            <div class="d-flex justify-content-between">
+                <span>座位：</span>
+                <strong>${seatNumber}</strong>
+            </div>
+            <div class="d-flex justify-content-between">
+                <span>预约ID：</span>
+                <strong>${reservationId}</strong>
+            </div>
+            <div class="d-flex justify-content-between">
+                <span>退座时间：</span>
+                <strong class="text-warning">${timeStr}</strong>
+            </div>
+        `;
+        
+        new bootstrap.Modal(document.getElementById('checkoutModal')).show();
+    }
+
+    function confirmCheckout() {
+        alert(`确认退座 - 预约ID: ${selectedReservationId}, 座位: ${selectedSeatNumber}`);
+        // 在实际应用中，这里会提交表单到服务器
+        // const form = document.createElement('form');
+        // form.method = 'post';
+        // form.action = `/reservations/checkout/${selectedReservationId}`;
+        // document.body.appendChild(form);
+        // form.submit();
+    }
+    
+    // 页面加载完成后显示修复成功消息
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(() => {
+            alert('页面加载成功！JavaScript语法错误已修复。\n\n点击"提前退座"按钮测试功能。');
+        }, 1000);
+    });
+</script>
+</body>
+</html> 

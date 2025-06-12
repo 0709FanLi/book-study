@@ -19,6 +19,17 @@ public class User {
     @Column(nullable = false)
     private String role;
     
+    // 学生信息字段
+    private String className;  // 班级
+    private String grade;      // 年级
+    
+    // 管理员信息字段
+    private String employeeId;    // 工号
+    private String officeNumber;  // 办公室编号
+    
+    // 通用字段
+    private String phone;      // 电话号码
+    
     @OneToMany(mappedBy = "user")
     private List<Reservation> reservations;
 

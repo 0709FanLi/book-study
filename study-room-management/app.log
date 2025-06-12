@@ -492,3 +492,8 @@ java.sql.SQLSyntaxErrorException: Unknown column 'reservatio0_.actual_end_time' 
 	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:61) [tomcat-embed-core-9.0.63.jar:9.0.63]
 	at java.lang.Thread.run(Thread.java:748) [na:1.8.0_161]
 
+2025-06-12 01:02:55.596  WARN 94813 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=13m37s325ms).
+2025-06-12 01:25:23.460  WARN 94813 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=21m57s212ms).
+2025-06-12 01:46:57.319  WARN 94813 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=20m3s240ms).
+2025-06-12 01:51:08.790  WARN 94813 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=1m2s148ms).
+2025-06-12 01:53:02.325  WARN 94813 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=1m22s459ms).

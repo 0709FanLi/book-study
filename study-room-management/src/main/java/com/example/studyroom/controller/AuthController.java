@@ -83,6 +83,8 @@ public class AuthController {
         user.setPassword(passwordEncoder.encode(password));
         userRepository.save(user);
 
-        return "redirect:/login?password_reset";
+        // 重定向到登录页面，显示成功消息
+        model.addAttribute("success", "密码重置成功！请使用新密码登录。");
+        return "auth/login";
     }
 } 
